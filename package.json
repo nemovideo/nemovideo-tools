@@ -1,0 +1,44 @@
+{
+  "name": "nemovideo-cli",
+  "version": "0.1.0",
+  "description": "NemoVideo CLI - AI video creation and editing from the command line",
+  "type": "module",
+  "bin": {
+    "nemo": "./dist/index.js"
+  },
+  "main": "./dist/index.js",
+  "files": [
+    "dist"
+  ],
+  "scripts": {
+    "build": "tsup",
+    "dev": "tsup --watch",
+    "start": "node dist/index.js",
+    "typecheck": "tsc --noEmit"
+  },
+  "keywords": [
+    "nemovideo",
+    "video",
+    "ai",
+    "cli"
+  ],
+  "license": "MIT",
+  "engines": {
+    "node": ">=18"
+  },
+  "dependencies": {
+    "chalk": "latest",
+    "commander": "latest",
+    "conf": "latest",
+    "ora": "latest",
+    "update-notifier": "latest",
+    "ws": "latest"
+  },
+  "devDependencies": {
+    "@types/node": "latest",
+    "@types/update-notifier": "latest",
+    "@types/ws": "latest",
+    "tsup": "latest",
+    "typescript": "latest"
+  }
+}
