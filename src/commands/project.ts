@@ -38,19 +38,19 @@ export function registerProjectCommand(program: Command): void {
 
         const spin = ui.spinner('Loading projects...');
         try {
-          const projects = await client.get<Project[]>('/projects');
+          const resp = await client.get<{ projects: Project[]; count: number }>('/projects');
           spin.stop();
+          const projects = resp.projects ?? [];
 
-          if (!projects || projects.length === 0) {
+          if (projects.length === 0) {
             ui.info('No projects found. Create one with: nemo create -p "your description"');
             return;
           }
 
-          const headers = ['ID', 'Status', 'Prompt', 'Created'];
+          const headers = ['ID', 'Name', 'Created'];
           const rows = projects.map((p) => [
-            p.id,
-            p.status,
-            (p.prompt ?? p.name ?? '').slice(0, 30) + ((p.prompt ?? p.name ?? '').length > 30 ? '...' : ''),
+            p.project_id,
+            (p.name ?? '(unnamed)').slice(0, 30) + ((p.name ?? '').length > 30 ? '...' : ''),
             formatTimeAgo(p.created_at),
           ]);
 
@@ -86,12 +86,10 @@ export function registerProjectCommand(program: Command): void {
           ]);
           spin.stop();
 
-          ui.heading(`Project: ${id}`);
-          console.log(`  Status:  ${project.status}`);
+          ui.heading(`Project: ${project.project_id}`);
           console.log(`  Name:    ${project.name ?? '(unnamed)'}`);
-          console.log(`  Prompt:  ${project.prompt ?? '(none)'}`);
           console.log(`  Created: ${project.created_at}`);
-          console.log(`  Updated: ${project.updated_at}`);
+          console.log(`  Updated: ${project.updated_at ?? '-'}`);
 
           if (state?.draft) {
             console.log(`  Draft:   ${ui.bold('available')}`);

@@ -17,12 +17,14 @@ export interface VerifyTokenResponse {
 // ── Projects ──
 
 export interface Project {
-  id: string;
-  name?: string;
-  status: string;
-  prompt?: string;
+  project_id: string;
+  user_id: string;
+  name?: string | null;
+  cover_assets?: unknown[];
+  session?: unknown | null;
   created_at: string;
-  updated_at: string;
+  updated_at?: string | null;
+  deleted_at?: string | null;
 }
 
 export interface CreateProjectRequest {
@@ -36,10 +38,12 @@ export interface CreateProjectResponse {
 }
 
 export interface Session {
-  id: string;
+  session_id: string;
   project_id: string;
+  name?: string | null;
   status: string;
   created_at: string;
+  updated_at?: string | null;
 }
 
 export interface SessionsResponse {

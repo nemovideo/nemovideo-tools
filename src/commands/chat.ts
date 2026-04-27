@@ -28,7 +28,7 @@ export function registerChatCommand(program: Command): void {
             process.exitCode = 1;
             return;
           }
-          sessionId = sessions.sessions[0].id;
+          sessionId = sessions.sessions[0].session_id;
           sessionSpin.succeed('Session found');
         } catch (err) {
           sessionSpin.fail('Failed to get session');
