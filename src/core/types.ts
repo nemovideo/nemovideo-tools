@@ -53,8 +53,9 @@ export interface SessionsResponse {
 // ── State ──
 
 export interface FrontendState {
-  draft?: Record<string, unknown>;
-  project_id: string;
+  project?: Record<string, unknown>;
+  version?: number;
+  projectName?: string;
   [key: string]: unknown;
 }
 

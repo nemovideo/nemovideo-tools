@@ -91,10 +91,10 @@ export function registerProjectCommand(program: Command): void {
           console.log(`  Created: ${project.created_at}`);
           console.log(`  Updated: ${project.updated_at ?? '-'}`);
 
-          if (state?.draft) {
-            console.log(`  Draft:   ${ui.bold('available')}`);
+          if (state?.project && Object.keys(state.project).length > 0) {
+            console.log(`  State:   ${ui.bold('has content')}`);
           } else {
-            console.log(`  Draft:   ${ui.dim('empty')}`);
+            console.log(`  State:   ${ui.dim('empty')}`);
           }
 
           ui.printNextSteps(id);

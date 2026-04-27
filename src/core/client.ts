@@ -78,13 +78,17 @@ async function handleResponse<T>(response: Response): Promise<T> {
     throw new GatewayError(body?.code ?? -1, message, response.status);
   }
 
-  const body = await response.json() as GatewayResponse<T>;
+  const body = await response.json();
 
-  if (body.code !== 0) {
-    throw new GatewayError(body.code, body.message);
+  if (typeof body === 'object' && body !== null && 'code' in body) {
+    const envelope = body as GatewayResponse<T>;
+    if (envelope.code !== 0) {
+      throw new GatewayError(envelope.code, envelope.message);
+    }
+    return envelope.data;
   }
 
-  return body.data;
+  return body as T;
 }
 
 export async function get<T>(path: string, query?: Record<string, string>): Promise<T> {

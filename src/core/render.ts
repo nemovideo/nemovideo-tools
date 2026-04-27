@@ -11,21 +11,29 @@ const RENDER_TIMEOUT_MS = 5 * 60 * 1000; // 5 minutes
 
 export async function getProjectDraft(projectId: string): Promise<FrontendState> {
   const state = await client.get<FrontendState>(`/api/v1/state/frontend/${projectId}`);
-  if (!state.draft || Object.keys(state.draft).length === 0) {
-    throw new Error('Project has no draft to render. Create or edit content first.');
+  if (!state.project || Object.keys(state.project).length === 0) {
+    throw new Error('Project has no content to render. Create or edit content first.');
   }
   return state;
 }
 
 export async function submitRender(
   projectId: string,
+  sessionId: string,
   draft: Record<string, unknown>,
 ): Promise<string> {
+  const renderId = `render_${Date.now()}`;
   const result = await client.post<RenderSubmitResponse>(
     '/services/v1/render-proxy/lambda',
-    { project_id: projectId, draft },
+    {
+      id: renderId,
+      sessionId,
+      projectId,
+      draft,
+      output: { format: 'mp4', quality: 'high' },
+    },
   );
-  return result.render_id;
+  return result.render_id ?? renderId;
 }
 
 export async function pollRenderStatus(renderId: string): Promise<RenderStatusResponse> {
@@ -71,6 +79,7 @@ export async function downloadRender(
 export async function renderAndDownload(
   projectId: string,
   outputPath?: string,
+  sessionId?: string,
 ): Promise<string> {
   const spin = ui.spinner('Checking draft...');
 
@@ -83,10 +92,20 @@ export async function renderAndDownload(
     throw err;
   }
 
+  if (!sessionId) {
+    const sessResp = await client.get<{ sessions: Array<{ session_id: string }> }>(
+      `/projects/${projectId}/sessions`,
+    );
+    sessionId = sessResp.sessions?.[0]?.session_id;
+    if (!sessionId) {
+      throw new Error('No session found for this project');
+    }
+  }
+
   const renderSpin = ui.spinner('Submitting render...');
   let renderId: string;
   try {
-    renderId = await submitRender(projectId, state.draft!);
+    renderId = await submitRender(projectId, sessionId, state.project!);
     renderSpin.text = 'Rendering...';
   } catch (err) {
     renderSpin.fail('Failed to submit render');
