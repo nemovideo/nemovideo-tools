@@ -28,6 +28,7 @@ export async function runAgentSession(
   let currentSpinner: Ora | null = null;
   const collectedTexts: string[] = [];
   let completed = false;
+  let messageSent = false;
   let agentError: string | undefined;
 
   return new Promise<AgentResult>((resolve, reject) => {
@@ -50,8 +51,11 @@ export async function runAgentSession(
         currentSpinner.succeed('Connected to agent');
         currentSpinner = null;
       }
-      currentSpinner = ui.spinner('AI is working...');
-      wsClient.send({ type: 'message', content: prompt, metadata: {} });
+      if (!messageSent) {
+        messageSent = true;
+        currentSpinner = ui.spinner('AI is working...');
+        wsClient.send({ type: 'message', content: prompt, metadata: {} });
+      }
     });
 
     wsClient.on('warming_up', () => {
