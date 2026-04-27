@@ -9,12 +9,13 @@ const POLL_INTERVAL_MS = 30_000; // 30 seconds
 const MAX_POLL_ATTEMPTS = 10;
 const RENDER_TIMEOUT_MS = 5 * 60 * 1000; // 5 minutes
 
-export async function getProjectDraft(projectId: string): Promise<FrontendState> {
+export async function getProjectDraft(projectId: string): Promise<Record<string, unknown>> {
   const state = await client.get<FrontendState>(`/api/v1/state/frontend/${projectId}`);
-  if (!state.project || Object.keys(state.project).length === 0) {
-    throw new Error('Project has no content to render. Create or edit content first.');
+  const draft = state.project?.['timeline_draft'] as Record<string, unknown> | undefined;
+  if (!draft || !draft.t) {
+    throw new Error('Project has no draft to render. Create or edit content first.');
   }
-  return state;
+  return draft;
 }
 
 export async function submitRender(
@@ -83,9 +84,9 @@ export async function renderAndDownload(
 ): Promise<string> {
   const spin = ui.spinner('Checking draft...');
 
-  let state: FrontendState;
+  let draft: Record<string, unknown>;
   try {
-    state = await getProjectDraft(projectId);
+    draft = await getProjectDraft(projectId);
     spin.succeed('Draft validated');
   } catch (err) {
     spin.fail('Failed to get project draft');
@@ -105,7 +106,7 @@ export async function renderAndDownload(
   const renderSpin = ui.spinner('Submitting render...');
   let renderId: string;
   try {
-    renderId = await submitRender(projectId, sessionId, state.project!);
+    renderId = await submitRender(projectId, sessionId, draft);
     renderSpin.text = 'Rendering...';
   } catch (err) {
     renderSpin.fail('Failed to submit render');
