@@ -3,6 +3,7 @@ import { resolve, basename, extname } from 'node:path';
 import { existsSync } from 'node:fs';
 import { stat } from 'node:fs/promises';
 import { requireAuth } from '../core/auth.js';
+import * as client from '../core/client.js';
 import { uploadFile, GatewayError } from '../core/client.js';
 import * as ui from '../ui.js';
 
@@ -42,8 +43,18 @@ export function registerUploadCommand(program: Command): void {
 
         const spin = ui.spinner(`Uploading ${fileName} (${sizeMB}MB)...`);
         try {
+          const sessResp = await client.get<{ sessions: Array<{ session_id: string }> }>(
+            `/projects/${opts.project}/sessions`,
+          );
+          const sessionId = sessResp.sessions?.[0]?.session_id;
+          if (!sessionId) {
+            spin.fail('No session found for this project');
+            process.exitCode = 1;
+            return;
+          }
+
           await uploadFile('/files/upload', filePath, fileName, {
-            project_id: opts.project,
+            session_id: sessionId,
           });
           spin.succeed(`Uploaded ${fileName}`);
         } catch (err) {

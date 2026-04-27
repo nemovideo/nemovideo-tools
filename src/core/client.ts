@@ -124,6 +124,18 @@ export async function post<T>(path: string, body?: unknown): Promise<T> {
   return handleResponse<T>(response);
 }
 
+const MIME_TYPES: Record<string, string> = {
+  '.mp4': 'video/mp4', '.mov': 'video/quicktime', '.avi': 'video/x-msvideo',
+  '.webm': 'video/webm', '.mkv': 'video/x-matroska',
+  '.jpg': 'image/jpeg', '.jpeg': 'image/jpeg', '.png': 'image/png',
+  '.gif': 'image/gif', '.webp': 'image/webp',
+  '.mp3': 'audio/mpeg', '.wav': 'audio/wav', '.m4a': 'audio/mp4', '.aac': 'audio/aac',
+};
+
+function getMimeType(ext: string): string {
+  return MIME_TYPES[ext] ?? 'application/octet-stream';
+}
+
 export async function uploadFile(
   path: string,
   filePath: string,
@@ -131,8 +143,10 @@ export async function uploadFile(
   extraFields?: Record<string, string>,
 ): Promise<unknown> {
   const { readFile } = await import('node:fs/promises');
+  const { extname } = await import('node:path');
   const fileBuffer = await readFile(filePath);
-  const blob = new Blob([fileBuffer]);
+  const mimeType = getMimeType(extname(fileName).toLowerCase());
+  const blob = new Blob([fileBuffer], { type: mimeType });
 
   const form = new FormData();
   form.append('file', blob, fileName);
