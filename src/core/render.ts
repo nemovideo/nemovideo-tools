@@ -17,7 +17,35 @@ export async function getProjectDraft(projectId: string): Promise<Record<string,
     throw new Error('Project has no draft to render. Create or edit content first.');
   }
 
-  return draft;
+  const fileMap = buildFilePathMap(state.project ?? {});
+  return rewriteSrcPaths(draft, fileMap);
+}
+
+function buildFilePathMap(project: Record<string, unknown>): Map<string, string> {
+  const map = new Map<string, string>();
+  for (const [key, value] of Object.entries(project)) {
+    if (!key.startsWith('files:') || !Array.isArray(value)) continue;
+    for (const file of value) {
+      const cdnUrl = file?.cdn_url as string | undefined;
+      const s3Key = file?.s3_key as string | undefined;
+      if (!cdnUrl || !s3Key) continue;
+      map.set(`/mnt/userdata/${s3Key}`, cdnUrl);
+    }
+  }
+  return map;
+}
+
+function rewriteSrcPaths(
+  draft: Record<string, unknown>,
+  fileMap: Map<string, string>,
+): Record<string, unknown> {
+  if (fileMap.size === 0) return draft;
+  let json = JSON.stringify(draft);
+  for (const [mountPath, cdnUrl] of fileMap) {
+    const escaped = mountPath.replace(/[.*+?^${}()|[\]\\]/g, '\\$&');
+    json = json.replace(new RegExp(escaped, 'g'), cdnUrl);
+  }
+  return JSON.parse(json) as Record<string, unknown>;
 }
 
 export async function submitRender(
