@@ -88,6 +88,14 @@ async function handleResponse<T>(response: Response): Promise<T> {
     return envelope.data;
   }
 
+  if (typeof body === 'object' && body !== null && 'success' in body) {
+    const obj = body as { success: boolean; data?: T; error?: string };
+    if (!obj.success) {
+      throw new GatewayError(-1, obj.error ?? 'Request failed');
+    }
+    return (obj.data ?? body) as T;
+  }
+
   return body as T;
 }
 

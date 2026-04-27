@@ -25,7 +25,7 @@ export async function submitRender(
   draft: Record<string, unknown>,
 ): Promise<string> {
   const renderId = `render_${Date.now()}`;
-  const result = await client.post<RenderSubmitResponse>(
+  await client.post<Record<string, unknown>>(
     '/services/v1/render-proxy/lambda',
     {
       id: renderId,
@@ -35,7 +35,7 @@ export async function submitRender(
       output: { format: 'mp4', quality: 'high' },
     },
   );
-  return result.render_id ?? renderId;
+  return renderId;
 }
 
 export async function pollRenderStatus(
@@ -47,18 +47,23 @@ export async function pollRenderStatus(
   let attempt = 0;
 
   while (Date.now() - startTime < RENDER_TIMEOUT_MS) {
-    const status = await client.get<RenderStatusResponse>(
+    const resp = await client.get<Record<string, unknown>>(
       `/services/v1/render-proxy/lambda/${renderId}`,
     );
 
-    if (status.status === 'completed') return status;
-    if (status.status === 'failed') {
-      throw new Error(`Render failed: ${status.error ?? 'unknown error'}`);
+    const status = resp.status as string ?? '';
+    const outputUrl = resp.outputUrl as string | undefined;
+    const progress = resp.progress as number | undefined;
+
+    if (status === 'completed' && outputUrl) {
+      return { render_id: renderId, status: 'completed', output: { url: outputUrl } };
+    }
+    if (status === 'failed') {
+      throw new Error(`Render failed: ${(resp.error as string) ?? 'unknown error'}`);
     }
 
     attempt++;
     const elapsed = Math.round((Date.now() - startTime) / 1000);
-    const progress = (status as unknown as Record<string, unknown>).progress;
     const progressStr = typeof progress === 'number' ? ` ${Math.round(progress)}%` : '';
     onProgress?.(`Rendering...${progressStr} (${elapsed}s)`);
 
