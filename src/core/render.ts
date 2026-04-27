@@ -5,8 +5,9 @@ import type { FrontendState, RenderSubmitResponse, RenderStatusResponse } from '
 import { resolve, join } from 'node:path';
 import { existsSync } from 'node:fs';
 
-const POLL_INTERVAL_MS = 30_000; // 30 seconds
-const MAX_POLL_ATTEMPTS = 10;
+const INITIAL_POLL_MS = 2_000; // start at 2s
+const MAX_POLL_MS = 15_000; // cap at 15s
+const POLL_BACKOFF = 1.5; // multiply by 1.5 each time
 const RENDER_TIMEOUT_MS = 5 * 60 * 1000; // 5 minutes
 
 export async function getProjectDraft(projectId: string): Promise<Record<string, unknown>> {
@@ -39,16 +40,13 @@ export async function submitRender(
 
 export async function pollRenderStatus(
   renderId: string,
-  onProgress?: (status: string, attempt: number, maxAttempts: number) => void,
+  onProgress?: (text: string) => void,
 ): Promise<RenderStatusResponse> {
-  let attempts = 0;
   const startTime = Date.now();
+  let pollInterval = INITIAL_POLL_MS;
+  let attempt = 0;
 
-  while (attempts < MAX_POLL_ATTEMPTS) {
-    if (Date.now() - startTime > RENDER_TIMEOUT_MS) {
-      throw new Error('Render timed out after 5 minutes');
-    }
-
+  while (Date.now() - startTime < RENDER_TIMEOUT_MS) {
     const status = await client.get<RenderStatusResponse>(
       `/services/v1/render-proxy/lambda/${renderId}`,
     );
@@ -58,21 +56,17 @@ export async function pollRenderStatus(
       throw new Error(`Render failed: ${status.error ?? 'unknown error'}`);
     }
 
-    attempts++;
+    attempt++;
+    const elapsed = Math.round((Date.now() - startTime) / 1000);
     const progress = (status as unknown as Record<string, unknown>).progress;
     const progressStr = typeof progress === 'number' ? ` ${Math.round(progress)}%` : '';
-    onProgress?.(
-      `Rendering...${progressStr} (${attempts}/${MAX_POLL_ATTEMPTS})`,
-      attempts,
-      MAX_POLL_ATTEMPTS,
-    );
+    onProgress?.(`Rendering...${progressStr} (${elapsed}s)`);
 
-    if (attempts < MAX_POLL_ATTEMPTS) {
-      await new Promise((r) => setTimeout(r, POLL_INTERVAL_MS));
-    }
+    await new Promise((r) => setTimeout(r, pollInterval));
+    pollInterval = Math.min(pollInterval * POLL_BACKOFF, MAX_POLL_MS);
   }
 
-  throw new Error('Render timed out: max poll attempts exceeded');
+  throw new Error('Render timed out after 5 minutes');
 }
 
 export async function downloadRender(
