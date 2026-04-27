@@ -25,15 +25,14 @@ export async function submitRender(
   sessionId: string,
   draft: Record<string, unknown>,
 ): Promise<string> {
-  const renderId = `render_${Date.now()}`;
+  const renderId = `draft-cli-${Date.now()}`;
   await client.post<Record<string, unknown>>(
     '/services/v1/render-proxy/lambda',
     {
       id: renderId,
-      sessionId,
-      projectId,
       draft,
-      output: { format: 'mp4', quality: 'high' },
+      sessionId,
+      output: { format: 'mp4', codec: 'h264', crf: 23 },
     },
   );
   return renderId;
