@@ -37,7 +37,10 @@ export async function submitRender(
   return result.render_id ?? renderId;
 }
 
-export async function pollRenderStatus(renderId: string): Promise<RenderStatusResponse> {
+export async function pollRenderStatus(
+  renderId: string,
+  onProgress?: (status: string, attempt: number, maxAttempts: number) => void,
+): Promise<RenderStatusResponse> {
   let attempts = 0;
   const startTime = Date.now();
 
@@ -56,6 +59,14 @@ export async function pollRenderStatus(renderId: string): Promise<RenderStatusRe
     }
 
     attempts++;
+    const progress = (status as unknown as Record<string, unknown>).progress;
+    const progressStr = typeof progress === 'number' ? ` ${Math.round(progress)}%` : '';
+    onProgress?.(
+      `Rendering...${progressStr} (${attempts}/${MAX_POLL_ATTEMPTS})`,
+      attempts,
+      MAX_POLL_ATTEMPTS,
+    );
+
     if (attempts < MAX_POLL_ATTEMPTS) {
       await new Promise((r) => setTimeout(r, POLL_INTERVAL_MS));
     }
@@ -115,7 +126,9 @@ export async function renderAndDownload(
 
   let renderResult: RenderStatusResponse;
   try {
-    renderResult = await pollRenderStatus(renderId);
+    renderResult = await pollRenderStatus(renderId, (text) => {
+      renderSpin.text = text;
+    });
     renderSpin.succeed('Render complete');
   } catch (err) {
     renderSpin.fail('Render failed');

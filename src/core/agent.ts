@@ -27,9 +27,10 @@ export async function runAgentSession(
 
   let currentSpinner: Ora | null = null;
   const collectedTexts: string[] = [];
+  let chunkBuffer = '';
   let completed = false;
   let messageSent = false;
-  let agentError: string | undefined;
+  let toolDepth = 0;
 
   return new Promise<AgentResult>((resolve, reject) => {
     const timeout = setTimeout(() => {
@@ -40,9 +41,17 @@ export async function runAgentSession(
 
     function cleanup() {
       clearTimeout(timeout);
+      flushChunkBuffer();
       if (currentSpinner) {
         currentSpinner.stop();
         currentSpinner = null;
+      }
+    }
+
+    function flushChunkBuffer() {
+      if (chunkBuffer.trim()) {
+        collectedTexts.push(chunkBuffer.trim());
+        chunkBuffer = '';
       }
     }
 
@@ -70,17 +79,22 @@ export async function runAgentSession(
 
     wsClient.on('chunk', (msg: WSServerMessage) => {
       if (msg.text) {
-        collectedTexts.push(msg.text);
+        chunkBuffer += msg.text;
+        if (currentSpinner && toolDepth === 0) {
+          const preview = chunkBuffer.slice(-60).replace(/\n/g, ' ');
+          currentSpinner.text = `AI: ${preview}`;
+        }
       }
     });
 
     wsClient.on('text', (msg: WSServerMessage) => {
       if (msg.text) {
+        flushChunkBuffer();
         if (currentSpinner) {
           currentSpinner.stop();
           currentSpinner = null;
         }
-        ui.agentText(msg.text.slice(0, 120));
+        ui.agentText(msg.text.slice(0, 200));
         if (!collectedTexts.includes(msg.text)) {
           collectedTexts.push(msg.text);
         }
@@ -96,12 +110,30 @@ export async function runAgentSession(
       if (currentSpinner) currentSpinner.text = 'Processing...';
     });
 
-    wsClient.on('tool_start', () => {
-      if (currentSpinner) currentSpinner.text = 'Processing...';
+    wsClient.on('tool_start', (msg: WSServerMessage) => {
+      toolDepth++;
+      flushChunkBuffer();
+      const toolName = (msg as Record<string, unknown>).name as string | undefined;
+      if (currentSpinner) {
+        if (toolName?.includes('generate') || toolName?.includes('video')) {
+          currentSpinner.text = `Generating video... (${toolName})`;
+        } else if (toolName?.includes('edit') || toolName?.includes('draft')) {
+          currentSpinner.text = `Editing timeline... (${toolName})`;
+        } else if (toolName?.includes('music') || toolName?.includes('audio')) {
+          currentSpinner.text = `Adding audio... (${toolName})`;
+        } else if (toolName) {
+          currentSpinner.text = `Running: ${toolName}`;
+        } else {
+          currentSpinner.text = 'Processing...';
+        }
+      }
     });
 
     wsClient.on('tool_end', () => {
-      if (currentSpinner) currentSpinner.text = 'Processing...';
+      toolDepth = Math.max(0, toolDepth - 1);
+      if (currentSpinner && toolDepth === 0) {
+        currentSpinner.text = 'Processing...';
+      }
     });
 
     wsClient.on('done', () => {
@@ -115,10 +147,9 @@ export async function runAgentSession(
       cleanup();
       wsClient.close();
       if (err instanceof Error) {
-        agentError = err.message;
         reject(err);
       } else {
-        agentError = err.error ?? 'Unknown agent error';
+        const agentError = err.error ?? 'Unknown agent error';
         resolve({ completed: false, texts: collectedTexts, error: agentError });
       }
     });
