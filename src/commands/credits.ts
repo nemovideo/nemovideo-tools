@@ -19,7 +19,7 @@ export function registerCreditsCommand(program: Command): void {
           spin.stop();
 
           console.log();
-          console.log(`  Available: ${ui.bold(String(balance.available))} | Frozen: ${balance.frozen} | Total used: ${balance.total_used}`);
+          console.log(`  Available: ${ui.bold(String(balance.available))} | Frozen: ${balance.frozen} | Total consumed: ${balance.total_consumed}`);
           console.log(`  Top up: ${ui.link('https://nemovideo.com/dashboard/billing')}`);
         } catch (err) {
           spin.fail('Failed to load balance');

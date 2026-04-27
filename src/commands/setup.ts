@@ -3,8 +3,10 @@ import { createInterface } from 'node:readline/promises';
 import { stdin as input, stdout as output } from 'node:process';
 import { getApiKey, setApiKey } from '../config.js';
 import { verifyToken, isTokenFormat } from '../core/auth.js';
-import * as ui from '../ui.js';
+import * as client from '../core/client.js';
 import { GatewayError } from '../core/client.js';
+import * as ui from '../ui.js';
+import type { BalanceResponse } from '../core/types.js';
 
 async function openUrl(url: string): Promise<void> {
   const { exec } = await import('node:child_process');
@@ -30,9 +32,10 @@ export function registerSetupCommand(program: Command): void {
       if (existingKey) {
         const spin = ui.spinner('Verifying existing API key...');
         try {
-          const result = await verifyToken(existingKey);
+          await verifyToken(existingKey);
+          const balance = await client.get<BalanceResponse>('/billing/balance');
           spin.succeed('API key is valid');
-          ui.success(`Balance: ${result.balance ?? 'N/A'} credits`);
+          ui.success(`Balance: ${balance.available} credits`);
           console.log();
           ui.info('You\'re all set! Run: nemo create -p "your video description"');
           return;
@@ -79,10 +82,11 @@ export function registerSetupCommand(program: Command): void {
 
         const spin = ui.spinner('Verifying...');
         try {
-          const result = await verifyToken(apiKey);
+          await verifyToken(apiKey);
           setApiKey(apiKey);
+          const balance = await client.get<BalanceResponse>('/billing/balance');
           spin.succeed('Verification successful!');
-          ui.success(`Balance: ${result.balance ?? 'N/A'} credits`);
+          ui.success(`Balance: ${balance.available} credits`);
           console.log();
           ui.info('Now run: nemo create -p "your video description"');
         } catch (err) {

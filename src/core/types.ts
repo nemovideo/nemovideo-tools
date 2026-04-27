@@ -86,7 +86,8 @@ export interface RenderStatusResponse {
 export interface BalanceResponse {
   available: number;
   frozen: number;
-  total_used: number;
+  total_granted: number;
+  total_consumed: number;
 }
 
 export interface UsageRecord {
