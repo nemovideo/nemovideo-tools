@@ -29,7 +29,10 @@ function buildFilePathMap(project: Record<string, unknown>): Map<string, string>
       const cdnUrl = file?.cdn_url as string | undefined;
       const s3Key = file?.s3_key as string | undefined;
       if (!cdnUrl || !s3Key) continue;
-      map.set(`/mnt/userdata/${s3Key}`, cdnUrl);
+      const filename = s3Key.split('/').pop() ?? '';
+      if (filename) {
+        map.set(filename, cdnUrl);
+      }
     }
   }
   return map;
@@ -41,9 +44,9 @@ function rewriteSrcPaths(
 ): Record<string, unknown> {
   if (fileMap.size === 0) return draft;
   let json = JSON.stringify(draft);
-  for (const [mountPath, cdnUrl] of fileMap) {
-    const escaped = mountPath.replace(/[.*+?^${}()|[\]\\]/g, '\\$&');
-    json = json.replace(new RegExp(escaped, 'g'), cdnUrl);
+  for (const [filename, cdnUrl] of fileMap) {
+    const pattern = `/mnt/userdata/[^"]*${filename.replace(/[.*+?^${}()|[\]\\]/g, '\\$&')}`;
+    json = json.replace(new RegExp(pattern, 'g'), cdnUrl);
   }
   return JSON.parse(json) as Record<string, unknown>;
 }
