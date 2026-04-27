@@ -16,7 +16,36 @@ export async function getProjectDraft(projectId: string): Promise<Record<string,
   if (!draft || !draft.t) {
     throw new Error('Project has no draft to render. Create or edit content first.');
   }
-  return draft;
+
+  const files = collectFiles(state.project ?? {});
+  return rewriteDraftPaths(draft, files);
+}
+
+function collectFiles(project: Record<string, unknown>): Map<string, string> {
+  const map = new Map<string, string>();
+  for (const [key, value] of Object.entries(project)) {
+    if (!key.startsWith('files:') || !Array.isArray(value)) continue;
+    for (const file of value) {
+      const cdnUrl = file?.cdn_url as string | undefined;
+      const s3Key = file?.s3_key as string | undefined;
+      if (!cdnUrl || !s3Key) continue;
+      const mountPath = `/mnt/userdata/${s3Key}`;
+      map.set(mountPath, cdnUrl);
+    }
+  }
+  return map;
+}
+
+function rewriteDraftPaths(
+  obj: Record<string, unknown>,
+  files: Map<string, string>,
+): Record<string, unknown> {
+  const json = JSON.stringify(obj);
+  let result = json;
+  for (const [mountPath, cdnUrl] of files) {
+    result = result.replaceAll(JSON.stringify(mountPath).slice(1, -1), cdnUrl);
+  }
+  return JSON.parse(result) as Record<string, unknown>;
 }
 
 export async function submitRender(
