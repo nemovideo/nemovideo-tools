@@ -6,6 +6,24 @@ import type { Ora } from 'ora';
 
 const AGENT_TIMEOUT_MS = 10 * 60 * 1000; // 10 minutes
 
+const LONG_RUNNING_TOOLS = ['generate_video', 'seedance', 'generate_music', 'suno'];
+
+function isLongRunningTool(name: string): boolean {
+  return LONG_RUNNING_TOOLS.some((t) => name.includes(t));
+}
+
+function getToolLabel(name: string): string {
+  if (name.includes('generate_video') || name.includes('seedance'))
+    return 'Generating video — may take 2-5 min';
+  if (name.includes('music') || name.includes('audio') || name.includes('voiceover'))
+    return 'Generating audio — may take 1-2 min';
+  if (name.includes('edit') || name.includes('draft') || name.includes('multitrack'))
+    return 'Editing timeline';
+  if (name.includes('understand') || name.includes('analyze'))
+    return 'Analyzing media';
+  return `Running: ${name}`;
+}
+
 export interface AgentResult {
   completed: boolean;
   texts: string[];
@@ -41,6 +59,10 @@ export async function runAgentSession(
 
     function cleanup() {
       clearTimeout(timeout);
+      if (toolTimerInterval) {
+        clearInterval(toolTimerInterval);
+        toolTimerInterval = null;
+      }
       flushChunkBuffer();
       if (currentSpinner) {
         currentSpinner.stop();
@@ -112,22 +134,31 @@ export async function runAgentSession(
       if (currentSpinner) currentSpinner.text = 'Processing...';
     });
 
+    let toolStartTime = 0;
+    let currentToolName = '';
+    let toolTimerInterval: ReturnType<typeof setInterval> | null = null;
+
     function handleToolStart(msg: WSServerMessage) {
       toolDepth++;
       flushChunkBuffer();
       const raw = msg as Record<string, unknown>;
       const toolName = (raw.tool ?? raw.tool_name ?? raw.name) as string | undefined;
+      currentToolName = toolName ?? '';
+      toolStartTime = Date.now();
+
+      if (toolTimerInterval) clearInterval(toolTimerInterval);
+
       if (currentSpinner && toolName) {
-        if (toolName.includes('generate_video') || toolName.includes('seedance')) {
-          currentSpinner.text = `Generating video... (${toolName})`;
-        } else if (toolName.includes('music') || toolName.includes('audio') || toolName.includes('voiceover')) {
-          currentSpinner.text = `Generating audio... (${toolName})`;
-        } else if (toolName.includes('edit') || toolName.includes('draft') || toolName.includes('multitrack')) {
-          currentSpinner.text = `Editing timeline... (${toolName})`;
-        } else if (toolName.includes('understand') || toolName.includes('analyze')) {
-          currentSpinner.text = `Analyzing media... (${toolName})`;
-        } else {
-          currentSpinner.text = `Running tool: ${toolName}`;
+        const label = getToolLabel(toolName);
+        currentSpinner.text = label;
+
+        if (isLongRunningTool(toolName)) {
+          toolTimerInterval = setInterval(() => {
+            const elapsed = Math.round((Date.now() - toolStartTime) / 1000);
+            if (currentSpinner) {
+              currentSpinner.text = `${label} (${elapsed}s)`;
+            }
+          }, 1000);
         }
       } else if (currentSpinner) {
         currentSpinner.text = 'Processing...';
@@ -136,8 +167,16 @@ export async function runAgentSession(
 
     function handleToolEnd() {
       toolDepth = Math.max(0, toolDepth - 1);
+      if (toolTimerInterval) {
+        clearInterval(toolTimerInterval);
+        toolTimerInterval = null;
+      }
       if (currentSpinner && toolDepth === 0) {
-        currentSpinner.text = 'Processing...';
+        if (currentToolName) {
+          const elapsed = Math.round((Date.now() - toolStartTime) / 1000);
+          currentSpinner.text = `${getToolLabel(currentToolName)} done (${elapsed}s)`;
+        }
+        currentToolName = '';
       }
     }
 
