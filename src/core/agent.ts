@@ -78,8 +78,9 @@ export async function runAgentSession(
     });
 
     wsClient.on('chunk', (msg: WSServerMessage) => {
-      if (msg.text) {
-        chunkBuffer += msg.text;
+      const text = msg.text || (msg as Record<string, unknown>).content as string | undefined;
+      if (text) {
+        chunkBuffer += text;
         if (currentSpinner && toolDepth === 0) {
           const preview = chunkBuffer.slice(-60).replace(/\n/g, ' ');
           currentSpinner.text = `AI: ${preview}`;
@@ -88,15 +89,16 @@ export async function runAgentSession(
     });
 
     wsClient.on('text', (msg: WSServerMessage) => {
-      if (msg.text) {
+      const text = msg.text || (msg as Record<string, unknown>).content as string | undefined;
+      if (text) {
         flushChunkBuffer();
         if (currentSpinner) {
           currentSpinner.stop();
           currentSpinner = null;
         }
-        ui.agentText(msg.text.slice(0, 200));
-        if (!collectedTexts.includes(msg.text)) {
-          collectedTexts.push(msg.text);
+        ui.agentText(text.slice(0, 200));
+        if (!collectedTexts.includes(text)) {
+          collectedTexts.push(text);
         }
         currentSpinner = ui.spinner('Processing...');
       }
@@ -137,7 +139,21 @@ export async function runAgentSession(
     });
 
     wsClient.on('done', () => {
-      cleanup();
+      clearTimeout(timeout);
+      if (chunkBuffer.trim()) {
+        if (currentSpinner) {
+          currentSpinner.stop();
+          currentSpinner = null;
+        }
+        const fullText = chunkBuffer.trim();
+        ui.agentText(fullText.slice(0, 300));
+        collectedTexts.push(fullText);
+        chunkBuffer = '';
+      }
+      if (currentSpinner) {
+        currentSpinner.stop();
+        currentSpinner = null;
+      }
       completed = true;
       wsClient.close();
       resolve({ completed: true, texts: collectedTexts });
