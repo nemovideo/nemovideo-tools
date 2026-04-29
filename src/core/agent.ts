@@ -112,31 +112,39 @@ export async function runAgentSession(
       if (currentSpinner) currentSpinner.text = 'Processing...';
     });
 
-    wsClient.on('tool_start', (msg: WSServerMessage) => {
+    function handleToolStart(msg: WSServerMessage) {
       toolDepth++;
       flushChunkBuffer();
-      const toolName = (msg as Record<string, unknown>).name as string | undefined;
-      if (currentSpinner) {
-        if (toolName?.includes('generate') || toolName?.includes('video')) {
+      const raw = msg as Record<string, unknown>;
+      const toolName = (raw.tool ?? raw.tool_name ?? raw.name) as string | undefined;
+      if (currentSpinner && toolName) {
+        if (toolName.includes('generate_video') || toolName.includes('seedance')) {
           currentSpinner.text = `Generating video... (${toolName})`;
-        } else if (toolName?.includes('edit') || toolName?.includes('draft')) {
+        } else if (toolName.includes('music') || toolName.includes('audio') || toolName.includes('voiceover')) {
+          currentSpinner.text = `Generating audio... (${toolName})`;
+        } else if (toolName.includes('edit') || toolName.includes('draft') || toolName.includes('multitrack')) {
           currentSpinner.text = `Editing timeline... (${toolName})`;
-        } else if (toolName?.includes('music') || toolName?.includes('audio')) {
-          currentSpinner.text = `Adding audio... (${toolName})`;
-        } else if (toolName) {
-          currentSpinner.text = `Running: ${toolName}`;
+        } else if (toolName.includes('understand') || toolName.includes('analyze')) {
+          currentSpinner.text = `Analyzing media... (${toolName})`;
         } else {
-          currentSpinner.text = 'Processing...';
+          currentSpinner.text = `Running tool: ${toolName}`;
         }
+      } else if (currentSpinner) {
+        currentSpinner.text = 'Processing...';
       }
-    });
+    }
 
-    wsClient.on('tool_end', () => {
+    function handleToolEnd() {
       toolDepth = Math.max(0, toolDepth - 1);
       if (currentSpinner && toolDepth === 0) {
         currentSpinner.text = 'Processing...';
       }
-    });
+    }
+
+    wsClient.on('tool_start', handleToolStart);
+    wsClient.on('toolcall_start', handleToolStart);
+    wsClient.on('tool_end', handleToolEnd);
+    wsClient.on('toolcall_end', handleToolEnd);
 
     wsClient.on('done', () => {
       clearTimeout(timeout);
