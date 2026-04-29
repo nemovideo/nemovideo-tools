@@ -90,6 +90,12 @@ nemo config set output_dir ./output      # Default output directory
 nemo config get                          # Show all config
 ```
 
+Environment variable `NEMOVIDEO_API_KEY` overrides the stored api_key:
+```bash
+export NEMOVIDEO_API_KEY=nmv_usr_xxx
+nemo credits
+```
+
 ## For AI IDE Users
 
 This CLI comes with a `SKILL.md` that teaches AI agents (Cursor, Claude Code, etc.) how to use it. Install the CLI, and your AI assistant can create videos for you.

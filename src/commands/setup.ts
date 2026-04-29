@@ -66,8 +66,8 @@ export function registerSetupCommand(program: Command): void {
 
         // Step 3: API Key
         console.log('  3. Get API Key');
-        await openUrl('https://nemovideo.com/dashboard/api-tokens');
-        ui.info(`Opening ${ui.link('https://nemovideo.com/dashboard/api-tokens')} ...`);
+        await openUrl('https://nemovideo.com/workspace/api-keys');
+        ui.info(`Opening ${ui.link('https://nemovideo.com/workspace/api-keys')} ...`);
 
         let apiKey = '';
         while (!apiKey) {

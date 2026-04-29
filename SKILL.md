@@ -140,6 +140,8 @@ nemo config get
 
 Config stored at `~/.config/nemovideo/config.json`.
 
+Environment variable `NEMOVIDEO_API_KEY` overrides the stored api_key.
+
 ## Cost Reference
 
 - Video creation: ~100 credits/clip

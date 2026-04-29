@@ -62,7 +62,7 @@ nemo-core 做"厚客户端"编排，与 mega-skill 教 agent 做编排是同一�
 nemo setup
   → 打开 nemovideo.com/register 注册
   → 打开 nemovideo.com/dashboard/billing 充值
-  → 在 nemovideo.com/dashboard/api-tokens 生成 API Token
+  → 在 nemovideo.com/workspace/api-keys 生成 API Token
   → 粘贴到 CLI: nemo config set api_key <nmv_usr_xxx>
   → CLI 验证 key 有效 + 余额 > 0 → 配置完成
 ```

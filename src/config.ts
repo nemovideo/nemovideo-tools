@@ -14,7 +14,7 @@ const config = new Conf<CLIConfig>({
 });
 
 export function getApiKey(): string {
-  return config.get('api_key');
+  return process.env.NEMOVIDEO_API_KEY || config.get('api_key');
 }
 
 export function setApiKey(key: string): void {
