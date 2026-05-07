@@ -7,35 +7,35 @@ description: >
   Requires API key from nemovideo.com (paid).
   Supports mp4, mov, avi, webm, mkv, jpg, png, gif, webp, mp3, wav, m4a, aac.
 homepage: https://nemovideo.com
-repository: https://github.com/nemovideo/nemovideo-cli
+repository: https://github.com/nemovideo/nemovideo-tools
 metadata: {"openclaw": {"emoji": "🎬", "requires": {"env": [], "configPaths": ["~/.config/nemovideo/"]}, "primaryEnv": "NEMO_API_KEY"}}
 ---
 
-# NemoVideo CLI — AI Video Creation
+# NemoVideo Tools — AI Video Creation
 
-Create and edit videos by running `nemo` commands. No GUI needed.
+Create and edit videos by running `nemovideo` commands. No GUI needed.
 
 ## Prerequisites
 
 Requires Node.js >= 18 and a paid NemoVideo account.
 
 ```bash
-npm install -g nemovideo-cli
-nemo setup
+npm install -g nemovideo-tools
+nemovideo setup
 ```
 
-`nemo setup` guides you through: register → billing → API key configuration.
-If already configured, verify with `nemo credits`.
+`nemovideo setup` guides you through: register → billing → API key configuration.
+If already configured, verify with `nemovideo credits`.
 
 ## Commands
 
 ### Create Video
 
 ```bash
-nemo create --prompt "5-second coffee product showcase, warm tones"
-nemo create --prompt "10s tech demo" --duration 10 --ratio 16:9
-nemo create --prompt "short intro" --export              # create + auto export
-nemo create --prompt "short intro" --export -o ./out.mp4 # with custom output path
+nemovideo create --prompt "5-second coffee product showcase, warm tones"
+nemovideo create --prompt "10s tech demo" --duration 10 --ratio 16:9
+nemovideo create --prompt "short intro" --export              # create + auto export
+nemovideo create --prompt "short intro" --export -o ./out.mp4 # with custom output path
 ```
 
 | Flag | Short | Default | Description |
@@ -51,16 +51,16 @@ Returns `project_id` for subsequent commands.
 ### Edit Existing Project
 
 ```bash
-nemo chat <project_id> --prompt "add background music"
-nemo chat <project_id> --prompt "change duration to 10 seconds"
-nemo chat <project_id> --prompt "add title 'Hello World' at the beginning"
+nemovideo chat <project_id> --prompt "add background music"
+nemovideo chat <project_id> --prompt "change duration to 10 seconds"
+nemovideo chat <project_id> --prompt "add title 'Hello World' at the beginning"
 ```
 
 ### Export Video
 
 ```bash
-nemo export <project_id>
-nemo export <project_id> --output ./my-video.mp4
+nemovideo export <project_id>
+nemovideo export <project_id> --output ./my-video.mp4
 ```
 
 Export is free — only creation/editing consumes credits.
@@ -68,9 +68,9 @@ Export is free — only creation/editing consumes credits.
 ### Upload Assets
 
 ```bash
-nemo upload ./footage.mp4 --project <project_id>
-nemo upload ./music.mp3 --project <project_id>
-nemo upload ./logo.png --project <project_id>
+nemovideo upload ./footage.mp4 --project <project_id>
+nemovideo upload ./music.mp3 --project <project_id>
+nemovideo upload ./logo.png --project <project_id>
 ```
 
 Supported: mp4, mov, avi, webm, mkv, jpg, png, gif, webp, mp3, wav, m4a, aac.
@@ -78,64 +78,64 @@ Supported: mp4, mov, avi, webm, mkv, jpg, png, gif, webp, mp3, wav, m4a, aac.
 ### Open in Browser
 
 ```bash
-nemo open <project_id>
+nemovideo open <project_id>
 ```
 
 ### Project Management
 
 ```bash
-nemo project list
-nemo project get <project_id>
-nemo project download <project_id> --output ./video.mp4
+nemovideo project list
+nemovideo project get <project_id>
+nemovideo project download <project_id> --output ./video.mp4
 ```
 
 ### Credits
 
 ```bash
-nemo credits                   # check balance
-nemo credits history           # consumption history
+nemovideo credits                   # check balance
+nemovideo credits history           # consumption history
 ```
 
 ## Typical Workflow
 
 ```bash
 # 1. Create a video
-nemo create -p "product showcase video, 10 seconds, modern style" -d 10
+nemovideo create -p "product showcase video, 10 seconds, modern style" -d 10
 
 # 2. Edit it
-nemo chat <project_id> -p "add upbeat background music"
-nemo chat <project_id> -p "add title 'Our Product' at the beginning"
+nemovideo chat <project_id> -p "add upbeat background music"
+nemovideo chat <project_id> -p "add title 'Our Product' at the beginning"
 
 # 3. Export
-nemo export <project_id> -o ./product-video.mp4
+nemovideo export <project_id> -o ./product-video.mp4
 
 # 4. Or do it all in one step
-nemo create -p "product showcase" --export -o ./product-video.mp4
+nemovideo create -p "product showcase" --export -o ./product-video.mp4
 ```
 
 ## One-Step Workflow (for simple requests)
 
 ```bash
-nemo create --prompt "5-second sunset timelapse" --export
+nemovideo create --prompt "5-second sunset timelapse" --export
 ```
 
 ## Error Handling
 
 | Error | What to do |
 |-------|------------|
-| "API key not configured" | Run `nemo setup` |
-| "Token expired" | Run `nemo setup` to reconfigure |
+| "API key not configured" | Run `nemovideo setup` |
+| "Token expired" | Run `nemovideo setup` to reconfigure |
 | "Insufficient credits" | Top up at nemovideo.com/dashboard/billing |
 | "Rate limited" | Wait a moment and retry |
-| Connection dropped | Run `nemo project get <id>` to check status |
+| Connection dropped | Run `nemovideo project get <id>` to check status |
 
 ## Configuration
 
 ```bash
-nemo config set api_key <nmv_usr_xxx>
-nemo config set base_url https://mega-x-api.nemovideo.ai
-nemo config set output_dir ./output
-nemo config get
+nemovideo config set api_key <nmv_usr_xxx>
+nemovideo config set base_url https://mega-x-api.nemovideo.ai
+nemovideo config set output_dir ./output
+nemovideo config get
 ```
 
 Config stored at `~/.config/nemovideo/config.json`.
@@ -147,4 +147,4 @@ Environment variable `NEMOVIDEO_API_KEY` overrides the stored api_key.
 - Video creation: ~100 credits/clip
 - Video editing: ~50 credits/session
 - Export/render: free
-- Check balance: `nemo credits`
+- Check balance: `nemovideo credits`

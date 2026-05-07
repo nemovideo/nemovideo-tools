@@ -37,7 +37,7 @@ export function registerSetupCommand(program: Command): void {
           spin.succeed('API key is valid');
           ui.success(`Balance: ${balance.available} credits`);
           console.log();
-          ui.info('You\'re all set! Run: nemo create -p "your video description"');
+          ui.info('You\'re all set! Run: nemovideo create -p "your video description"');
           return;
         } catch {
           spin.warn('Existing API key is invalid, starting setup...');
@@ -88,7 +88,7 @@ export function registerSetupCommand(program: Command): void {
           spin.succeed('Verification successful!');
           ui.success(`Balance: ${balance.available} credits`);
           console.log();
-          ui.info('Now run: nemo create -p "your video description"');
+          ui.info('Now run: nemovideo create -p "your video description"');
         } catch (err) {
           spin.fail('Verification failed');
           if (err instanceof GatewayError) {

@@ -9,7 +9,7 @@
 **后端几乎零改动。** Gateway 仅需在 verify_token 加 `nmv_usr_*` 分支，其余全复用现有 API。
 编排逻辑在客户端（nemo-core）完成，与 mega-skill 教 agent 编排是同一模式。
 
-| 对比 | mega-skill | nemovideo-cli |
+| 对比 | mega-skill | nemovideo-tools |
 |------|-----------|---------------|
 | 后端 | nemo-mega | nemo-mega-x-api-gateway |
 | 形态 | SKILL.md（agent 读 curl 指令） | npm CLI + SKILL.md |
@@ -59,11 +59,11 @@ nemo-core 做"厚客户端"编排，与 mega-skill 教 agent 做编排是同一�
 ### 3.1 用户链路
 
 ```
-nemo setup
+nemovideo setup
   → 打开 nemovideo.com/register 注册
   → 打开 nemovideo.com/dashboard/billing 充值
   → 在 nemovideo.com/workspace/api-keys 生成 API Token
-  → 粘贴到 CLI: nemo config set api_key <nmv_usr_xxx>
+  → 粘贴到 CLI: nemovideo config set api_key <nmv_usr_xxx>
   → CLI 验证 key 有效 + 余额 > 0 → 配置完成
 ```
 
@@ -97,28 +97,28 @@ CLI 所有请求使用 `Authorization: Bearer nmv_usr_xxx`。
 
 | CLI 命令 | 调用的 Gateway API | 说明 |
 |----------|-------------------|------|
-| `nemo setup` | (无 API 调用，引导用户去网页注册充值) | 仅本地配置 |
-| `nemo config set api_key` | `POST /auth/verify` | 验证 key 有效性 |
-| `nemo create` | `POST /projects` | 创建项目 + session |
+| `nemovideo setup` | (无 API 调用，引导用户去网页注册充值) | 仅本地配置 |
+| `nemovideo config set api_key` | `POST /auth/verify` | 验证 key 有效性 |
+| `nemovideo create` | `POST /projects` | 创建项目 + session |
 | | `WS /ws/chat?token=&session_id=` | 发送 prompt，等待 agent 完成 |
 | | (加 `--export` 时自动调 export 流程) | |
-| `nemo chat <id>` | `GET /projects/{id}/sessions` | 获取 session_id |
+| `nemovideo chat <id>` | `GET /projects/{id}/sessions` | 获取 session_id |
 | | `WS /ws/chat?token=&session_id=` | 发送消息，监听响应 |
-| `nemo export <id>` | `GET /api/v1/state/frontend/{id}` | 获取 draft |
+| `nemovideo export <id>` | `GET /api/v1/state/frontend/{id}` | 获取 draft |
 | | `POST /services/v1/render-proxy/lambda` | 提交渲染 |
 | | `GET /services/v1/render-proxy/lambda/{id}` | 轮询 |
 | | `GET /services/v1/render-proxy/{id}/download` | 下载 |
-| `nemo upload` | `POST /files/upload` | 上传素材 |
-| `nemo open <id>` | `POST /api/auth/exchange-claim-token` | 获取 claim token，打开浏览器 |
-| `nemo project list` | `GET /projects` | 列出项目 |
-| `nemo project get <id>` | `GET /projects/{id}` + `GET /api/v1/state/frontend/{id}` | 查状态 |
-| `nemo project download <id>` | `GET /services/v1/render-proxy/{id}/download` | 下载成品 |
-| `nemo credits` | `GET /billing/balance` | 查余额 |
-| `nemo credits history` | `GET /billing/usage/conversations` | 消费记录 |
+| `nemovideo upload` | `POST /files/upload` | 上传素材 |
+| `nemovideo open <id>` | `POST /api/auth/exchange-claim-token` | 获取 claim token，打开浏览器 |
+| `nemovideo project list` | `GET /projects` | 列出项目 |
+| `nemovideo project get <id>` | `GET /projects/{id}` + `GET /api/v1/state/frontend/{id}` | 查状态 |
+| `nemovideo project download <id>` | `GET /services/v1/render-proxy/{id}/download` | 下载成品 |
+| `nemovideo credits` | `GET /billing/balance` | 查余额 |
+| `nemovideo credits history` | `GET /billing/usage/conversations` | 消费记录 |
 
 ### 3.4 核心编排流程
 
-#### `nemo create` 流程
+#### `nemovideo create` 流程
 
 ```
 1. POST /projects { create_session: true }    → project_id, session_id
@@ -129,7 +129,7 @@ CLI 所有请求使用 `Authorization: Bearer nmv_usr_xxx`。
 6. (若 --export) 自动执行 export 流程
 ```
 
-#### `nemo chat` 流程
+#### `nemovideo chat` 流程
 
 ```
 1. GET /projects/{id}/sessions                → 获取 session_id
@@ -139,7 +139,7 @@ CLI 所有请求使用 `Authorization: Bearer nmv_usr_xxx`。
 5. 收到 done → WS close
 ```
 
-#### `nemo export` 流程
+#### `nemovideo export` 流程
 
 ```
 1. GET /api/v1/state/frontend/{project_id}    → 获取 draft，校验非空
@@ -227,22 +227,22 @@ CLI 所有请求使用 `Authorization: Bearer nmv_usr_xxx`。
 单包，不搞 monorepo。core 作为内部模块，后续有需要再拆 npm 包。
 
 ```
-nemovideo-cli/
-├── package.json               # bin: { "nemo": "./dist/index.js" }
+nemovideo-tools/
+├── package.json               # bin: { "nemovideo": "./dist/index.js" }
 ├── tsconfig.json
 ├── tsup.config.ts
 ├── src/
 │   ├── index.ts               # CLI 入口 (Commander.js)
 │   ├── commands/
-│   │   ├── setup.ts           # nemo setup
-│   │   ├── config.ts          # nemo config set/get
-│   │   ├── create.ts          # nemo create
-│   │   ├── chat.ts            # nemo chat
-│   │   ├── export.ts          # nemo export
-│   │   ├── upload.ts          # nemo upload
-│   │   ├── open.ts            # nemo open
-│   │   ├── project.ts         # nemo project list/get/download
-│   │   └── credits.ts         # nemo credits
+│   │   ├── setup.ts           # nemovideo setup
+│   │   ├── config.ts          # nemovideo config set/get
+│   │   ├── create.ts          # nemovideo create
+│   │   ├── chat.ts            # nemovideo chat
+│   │   ├── export.ts          # nemovideo export
+│   │   ├── upload.ts          # nemovideo upload
+│   │   ├── open.ts            # nemovideo open
+│   │   ├── project.ts         # nemovideo project list/get/download
+│   │   └── credits.ts         # nemovideo credits
 │   ├── core/                  # Gateway API 客户端
 │   │   ├── client.ts          # HTTP 封装 (fetch)
 │   │   ├── ws.ts              # WebSocket 封装
@@ -261,10 +261,10 @@ nemovideo-cli/
 启动时用 `update-notifier` 检查 npm registry（每天一次，有缓存不阻塞启动）：
 
 ```
-⚠ 有新版本 1.2.0 (当前 1.0.0)，运行 npm update -g nemovideo-cli 升级
+⚠ 有新版本 1.2.0 (当前 1.0.0)，运行 npm update -g nemovideo-tools 升级
 ```
 
-### 4.3 技术选型（npm 包名: nemovideo-cli）
+### 4.3 技术选型（npm 包名: nemovideo-tools）
 
 | 组件 | 选型 | 理由 |
 |------|------|------|
@@ -296,7 +296,7 @@ nemovideo-cli/
 ### 4.5 命令总览
 
 ```
-nemo
+nemovideo
 ├── setup                       # 注册+充值+配置引导
 ├── config
 │   ├── set <key> <value>       # 设置配置
@@ -317,10 +317,10 @@ nemo
 
 ### 4.6 命令 UX 详情
 
-#### `nemo setup`
+#### `nemovideo setup`
 
 ```
-$ nemo setup
+$ nemovideo setup
 
   NemoVideo CLI 🎬
 
@@ -341,15 +341,15 @@ $ nemo setup
   ◐ 验证中...
   ✓ 验证成功！余额: 500 credits
 
-  现在可以运行: nemo create --prompt "你的视频描述"
+  现在可以运行: nemovideo create --prompt "你的视频描述"
 ```
 
 如已配置 key 且有效则跳过，直接显示余额。
 
-#### `nemo create`
+#### `nemovideo create`
 
 ```
-$ nemo create -p "5秒咖啡产品展示，暖色调"
+$ nemovideo create -p "5秒咖啡产品展示，暖色调"
 
   ◐ 创建项目...
   ◐ 连接 Agent...
@@ -359,11 +359,11 @@ $ nemo create -p "5秒咖啡产品展示，暖色调"
 
   ✓ 完成！项目: proj_abc
     消耗 100 credits | 余额 400
-    导出: nemo export proj_abc
-    编辑: nemo chat proj_abc -p "加个背景音乐"
+    导出: nemovideo export proj_abc
+    编辑: nemovideo chat proj_abc -p "加个背景音乐"
 
 # 加 --export 一步到位
-$ nemo create -p "5秒咖啡产品展示" --export
+$ nemovideo create -p "5秒咖啡产品展示" --export
 
   ...（同上）
   ◐ 渲染中... ████████████████ 100%
@@ -378,12 +378,12 @@ $ nemo create -p "5秒咖啡产品展示" --export
 | `--export` | `-e` | 不加则仅生成，不渲染 |
 | `--output` | `-o` | `./output/<name>.mp4`（需配合 --export） |
 
-#### `nemo chat`
+#### `nemovideo chat`
 
 对已有项目发送后续指令（追加编辑）。内部跳过创建项目，直接连 WS 发消息。
 
 ```
-$ nemo chat proj_abc -p "加个背景音乐"
+$ nemovideo chat proj_abc -p "加个背景音乐"
 
   ◐ 连接 Agent...
     > "好的，正在添加背景音乐..."
@@ -392,7 +392,7 @@ $ nemo chat proj_abc -p "加个背景音乐"
   ✓ 完成！
     编辑: https://nemovideo.com/workspace/claim?ct=clm_xxx
 
-$ nemo chat proj_abc -p "时长改成10秒"
+$ nemovideo chat proj_abc -p "时长改成10秒"
 ```
 
 | 参数 | 短写 | 默认 |
@@ -400,12 +400,12 @@ $ nemo chat proj_abc -p "时长改成10秒"
 | `<project_id>` | | (必需) |
 | `--prompt` | `-p` | (必需) |
 
-#### `nemo export`
+#### `nemovideo export`
 
-手动触发渲染导出。`nemo create` 默认不渲染，生成后用此命令导出。也可在 `nemo chat` 编辑后使用。
+手动触发渲染导出。`nemovideo create` 默认不渲染，生成后用此命令导出。也可在 `nemovideo chat` 编辑后使用。
 
 ```
-$ nemo export proj_abc
+$ nemovideo export proj_abc
 
   ◐ 检查 draft...
   ◐ 渲染中... ████████████████ 100%
@@ -419,12 +419,12 @@ $ nemo export proj_abc
 | `<project_id>` | | (必需) |
 | `--output` | `-o` | `./output/<name>.mp4` |
 
-#### `nemo upload`
+#### `nemovideo upload`
 
 上传素材文件到项目。
 
 ```
-$ nemo upload ./my-footage.mp4 --project proj_abc
+$ nemovideo upload ./my-footage.mp4 --project proj_abc
 
   ◐ 上传中... ████████████████ 100%
   ✓ 已上传 my-footage.mp4
@@ -437,30 +437,30 @@ $ nemo upload ./my-footage.mp4 --project proj_abc
 
 支持格式：mp4, mov, avi, webm, mkv, jpg, png, gif, webp, mp3, wav, m4a, aac。
 
-#### `nemo open`
+#### `nemovideo open`
 
 在浏览器中打开项目编辑页面。
 
 ```
-$ nemo open proj_abc
+$ nemovideo open proj_abc
   → 正在打开 https://nemovideo.com/workspace/claim?ct=clm_xxx ...
 ```
 
-#### `nemo project list / get / download`
+#### `nemovideo project list / get / download`
 
 ```
-$ nemo project list
+$ nemovideo project list
   ID         Status     Prompt              Created
   proj_abc   completed  咖啡产品展示         2min ago
 
-$ nemo project download proj_abc -o ./video.mp4
+$ nemovideo project download proj_abc -o ./video.mp4
   ✓ 已保存 ./video.mp4 (2.3MB)
 ```
 
-#### `nemo credits`
+#### `nemovideo credits`
 
 ```
-$ nemo credits
+$ nemovideo credits
   可用: 400 | 冻结: 100 | 累计消耗: 500
   充值: nemovideo.com/dashboard/billing
 ```
@@ -469,11 +469,11 @@ $ nemo credits
 
 ## 五、SKILL.md 设计
 
-nemovideo-cli 的 SKILL.md 面向 AI IDE Agent（Cursor / Claude Code 等），教它们调用 CLI 命令。
+nemovideo-tools 的 SKILL.md 面向 AI IDE Agent（Cursor / Claude Code 等），教它们调用 CLI 命令。
 
 与 mega-skill 的关键区别：
 - mega-skill 教 agent 发 HTTP 请求（curl）
-- nemovideo-cli 教 agent 执行本地 CLI 命令（nemo create）
+- nemovideo-tools 教 agent 执行本地 CLI 命令（nemovideo create）
 
 ```markdown
 ---
@@ -481,38 +481,38 @@ name: nemo-video
 version: "2.0"
 description: >
   AI video creation via CLI. Create and edit videos by running
-  nemo commands. Requires API key from nemovideo.com.
+  nemovideo commands. Requires API key from nemovideo.com.
 ---
 
 # NemoVideo CLI
 
 ## Setup
-If `nemo credits` fails, run `nemo setup` to configure API key.
+If `nemovideo credits` fails, run `nemovideo setup` to configure API key.
 
 ## Create Video
-nemo create --prompt "description" [--duration N] [--ratio 16:9|9:16|1:1]
-nemo create --prompt "description" --export    # create + auto export
+nemovideo create --prompt "description" [--duration N] [--ratio 16:9|9:16|1:1]
+nemovideo create --prompt "description" --export    # create + auto export
 
 ## Edit Existing Project
-nemo chat <project_id> --prompt "add background music"
+nemovideo chat <project_id> --prompt "add background music"
 
 ## Export / Download
-nemo export <project_id> [--output ./video.mp4]
+nemovideo export <project_id> [--output ./video.mp4]
 
 ## Upload Assets
-nemo upload ./file.mp4 --project <project_id>
+nemovideo upload ./file.mp4 --project <project_id>
 
 ## Open in Browser
-nemo open <project_id>
+nemovideo open <project_id>
 
 ## Project Management
-nemo project list
-nemo project get <project_id>
-nemo project download <project_id> [--output ./video.mp4]
+nemovideo project list
+nemovideo project get <project_id>
+nemovideo project download <project_id> [--output ./video.mp4]
 
 ## Check Credits
-nemo credits
-nemo credits history
+nemovideo credits
+nemovideo credits history
 ```
 
 （完整 SKILL.md 在实现阶段编写，包含错误处理、示例等。）
@@ -525,12 +525,12 @@ nemo credits history
 
 | Gateway code | CLI 展示 |
 |-------------|----------|
-| 非 200 / 无 token | "运行 `nemo setup` 配置账户" |
-| 1010/1011 | "Token 已失效，运行 `nemo setup`" |
+| 非 200 / 无 token | "运行 `nemovideo setup` 配置账户" |
+| 1010/1011 | "Token 已失效，运行 `nemovideo setup`" |
 | 2001 | "积分不足，充值: nemovideo.com/dashboard/billing" |
 | 402 | "功能受限，请升级套餐" |
 | 429 | "请求过于频繁，稍后重试" |
-| WS 断连 | 自动重连 1 次，失败提示 `nemo project get <id>` 恢复 |
+| WS 断连 | 自动重连 1 次，失败提示 `nemovideo project get <id>` 恢复 |
 | 渲染失败 | 重试 1 次，仍失败提示手动重试 |
 
 ---
@@ -540,7 +540,7 @@ nemo credits history
 请求 header 携带平台信息（复用 mega-skill attribution 模式，gateway 已支持）：
 
 ```
-X-Skill-Source: nemo-video-cli
+X-Skill-Source: nemovideo-tools
 X-Skill-Version: 1.0.0
 X-Skill-Platform: cursor | claude_code | terminal
 ```
@@ -552,11 +552,11 @@ Gateway 侧 Mixpanel 自动记录，CLI 无需额外上报。
 ## 八、实施步骤
 
 1. Gateway: `src/auth/middleware.py` verify_token 加 `nmv_usr_*` 验证分支
-2. nemovideo-cli 项目脚手架 + `core/client.ts` + `core/types.ts`
-3. `core/auth.ts` + `nemo setup` + `nemo config` + `nemo credits`
+2. nemovideo-tools 项目脚手架 + `core/client.ts` + `core/types.ts`
+3. `core/auth.ts` + `nemovideo setup` + `nemovideo config` + `nemovideo credits`
 4. `core/agent.ts`（WS 编排，create/chat 共用）+ `core/render.ts`
-5. `nemo create` + `nemo chat` + `nemo export` + 进度 UI
-6. `nemo upload` + `nemo open` + `nemo project list/get/download`
+5. `nemovideo create` + `nemovideo chat` + `nemovideo export` + 进度 UI
+6. `nemovideo upload` + `nemovideo open` + `nemovideo project list/get/download`
 7. SKILL.md + README + npm 发布配置
 8. 联调测试（接真实 gateway）
 
@@ -569,4 +569,4 @@ Gateway 侧 Mixpanel 自动记录，CLI 无需额外上报。
 | 生产 | `https://mega-x-api.nemovideo.ai`（默认） |
 | 测试 | `https://mega-x-api-dev.nemovideo.ai` |
 
-通过 `nemo config set base_url <url>` 切换。
+通过 `nemovideo config set base_url <url>` 切换。

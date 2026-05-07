@@ -23,7 +23,7 @@ function buildHeaders(extraHeaders?: Record<string, string>): Record<string, str
   const apiKey = getApiKey();
   const headers: Record<string, string> = {
     'Content-Type': 'application/json',
-    'X-Skill-Source': 'nemo-video-cli',
+    'X-Skill-Source': 'nemovideo-tools',
     'X-Skill-Version': getPackageVersion(),
     'X-Skill-Platform': detectPlatform(),
     ...extraHeaders,
@@ -158,7 +158,7 @@ export async function uploadFile(
 
   const apiKey = getApiKey();
   const headers: Record<string, string> = {
-    'X-Skill-Source': 'nemo-video-cli',
+    'X-Skill-Source': 'nemovideo-tools',
     'X-Skill-Version': getPackageVersion(),
     'X-Skill-Platform': detectPlatform(),
   };

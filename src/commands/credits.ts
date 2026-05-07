@@ -28,7 +28,7 @@ export function registerCreditsCommand(program: Command): void {
       } catch (err) {
         if (err instanceof GatewayError) {
           if (err.isAuthError) {
-            ui.error('Authentication failed. Run `nemo setup` to configure your API key.');
+            ui.error('Authentication failed. Run `nemovideo setup` to configure your API key.');
           } else {
             ui.error(err.message);
           }
@@ -75,7 +75,7 @@ export function registerCreditsCommand(program: Command): void {
       } catch (err) {
         if (err instanceof GatewayError) {
           if (err.isAuthError) {
-            ui.error('Authentication failed. Run `nemo setup` to configure your API key.');
+            ui.error('Authentication failed. Run `nemovideo setup` to configure your API key.');
           } else {
             ui.error(err.message);
           }

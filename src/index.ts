@@ -25,7 +25,7 @@ async function checkForUpdates() {
 const program = new Command();
 
 program
-  .name('nemo')
+  .name('nemovideo')
   .description('NemoVideo CLI — AI video creation and editing')
   .version(pkg.version);
 

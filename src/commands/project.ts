@@ -28,7 +28,7 @@ export function registerProjectCommand(program: Command): void {
     .command('project')
     .description('Manage projects');
 
-  // nemo project list
+  // nemovideo project list
   projectCmd
     .command('list')
     .description('List all projects')
@@ -43,7 +43,7 @@ export function registerProjectCommand(program: Command): void {
           const projects = resp.projects ?? [];
 
           if (projects.length === 0) {
-            ui.info('No projects found. Create one with: nemo create -p "your description"');
+            ui.info('No projects found. Create one with: nemovideo create -p "your description"');
             return;
           }
 
@@ -70,7 +70,7 @@ export function registerProjectCommand(program: Command): void {
       }
     });
 
-  // nemo project get <id>
+  // nemovideo project get <id>
   projectCmd
     .command('get <id>')
     .description('Get project details')
@@ -112,7 +112,7 @@ export function registerProjectCommand(program: Command): void {
       }
     });
 
-  // nemo project download <id>
+  // nemovideo project download <id>
   projectCmd
     .command('download <id>')
     .description('Download the latest rendered video')
@@ -129,7 +129,7 @@ export function registerProjectCommand(program: Command): void {
 
           if (!renderStatus.output?.url) {
             spin.fail('No rendered video found');
-            ui.info(`Export first: nemo export ${id}`);
+            ui.info(`Export first: nemovideo export ${id}`);
             return;
           }
 

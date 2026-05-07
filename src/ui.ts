@@ -63,7 +63,7 @@ export function table(headers: string[], rows: string[][]): void {
 
 export function printNextSteps(projectId: string): void {
   console.log();
-  console.log(chalk.dim('    导出: ') + `nemo export ${projectId}`);
-  console.log(chalk.dim('    编辑: ') + `nemo chat ${projectId} -p "你的修改指令"`);
-  console.log(chalk.dim('    打开: ') + `nemo open ${projectId}`);
+  console.log(chalk.dim('    导出: ') + `nemovideo export ${projectId}`);
+  console.log(chalk.dim('    编辑: ') + `nemovideo chat ${projectId} -p "你的修改指令"`);
+  console.log(chalk.dim('    打开: ') + `nemovideo open ${projectId}`);
 }

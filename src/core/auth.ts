@@ -9,7 +9,7 @@ export function isTokenFormat(token: string): boolean {
 export async function verifyToken(token?: string): Promise<VerifyTokenResponse> {
   const apiKey = token ?? getApiKey();
   if (!apiKey) {
-    throw new Error('No API key configured. Run `nemo setup` first.');
+    throw new Error('No API key configured. Run `nemovideo setup` first.');
   }
   if (!isTokenFormat(apiKey)) {
     throw new Error('Invalid API key format. Keys start with nmv_usr_');
@@ -21,7 +21,7 @@ export async function verifyToken(token?: string): Promise<VerifyTokenResponse> 
 export function requireAuth(): string {
   const apiKey = getApiKey();
   if (!apiKey) {
-    throw new Error('No API key configured. Run `nemo setup` to get started.');
+    throw new Error('No API key configured. Run `nemovideo setup` to get started.');
   }
   return apiKey;
 }

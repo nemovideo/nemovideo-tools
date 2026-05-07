@@ -36,7 +36,7 @@ export async function runAgentSession(
 ): Promise<AgentResult> {
   const apiKey = getApiKey();
   if (!apiKey) {
-    throw new Error('No API key configured. Run `nemo setup` first.');
+    throw new Error('No API key configured. Run `nemovideo setup` first.');
   }
 
   const baseUrl = getBaseUrl();
@@ -226,7 +226,7 @@ export async function runAgentSession(
       resolve({
         completed: false,
         texts: collectedTexts,
-        error: 'Connection lost. Check project status with: nemo project get <id>',
+        error: 'Connection lost. Check project status with: nemovideo project get <id>',
       });
     });
 

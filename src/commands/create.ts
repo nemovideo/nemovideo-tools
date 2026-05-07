@@ -57,7 +57,7 @@ export function registerCreateCommand(program: Command): void {
             ui.success(`Exported: ${filePath}`);
           } catch (err) {
             ui.error(`Export failed: ${(err as Error).message}`);
-            ui.info(`You can export later: nemo export ${project_id}`);
+            ui.info(`You can export later: nemovideo export ${project_id}`);
           }
         } else {
           ui.printNextSteps(project_id);
@@ -78,7 +78,7 @@ function buildPrompt(opts: CreateOptions): string {
 function handleCommandError(err: unknown): void {
   if (err instanceof client.GatewayError) {
     if (err.isAuthError) {
-      ui.error('Authentication failed. Run `nemo setup` to configure your API key.');
+      ui.error('Authentication failed. Run `nemovideo setup` to configure your API key.');
     } else if (err.isInsufficientCredits) {
       ui.error('Insufficient credits. Top up at: nemovideo.com/dashboard/billing');
     } else if (err.isRateLimited) {
