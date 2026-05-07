@@ -37,8 +37,17 @@ export function registerSetupCommand(program: Command): void {
           spin.succeed('API key is valid');
           ui.success(`Balance: ${balance.available} credits`);
           console.log();
-          ui.info('You\'re all set! Run: nemovideo create -p "your video description"');
-          return;
+
+          const rl = createInterface({ input, output });
+          try {
+            const reconfigure = await rl.question('  ? Reconfigure with a new key? (y/N) ');
+            if (reconfigure.toLowerCase() !== 'y') {
+              ui.info('You\'re all set! Run: nemovideo create -p "your video description"');
+              return;
+            }
+          } finally {
+            rl.close();
+          }
         } catch {
           spin.warn('Existing API key is invalid, starting setup...');
         }
@@ -80,23 +89,22 @@ export function registerSetupCommand(program: Command): void {
           }
         }
 
+        setApiKey(apiKey);
         const spin = ui.spinner('Verifying...');
         try {
           await verifyToken(apiKey);
-          setApiKey(apiKey);
           const balance = await client.get<BalanceResponse>('/billing/balance');
           spin.succeed('Verification successful!');
           ui.success(`Balance: ${balance.available} credits`);
           console.log();
           ui.info('Now run: nemovideo create -p "your video description"');
         } catch (err) {
-          spin.fail('Verification failed');
+          spin.warn('API key saved, but verification failed');
           if (err instanceof GatewayError) {
             ui.error(err.message);
           } else {
             ui.error('Could not verify API key. Check your network and try again.');
           }
-          process.exitCode = 1;
         }
       } finally {
         rl.close();
