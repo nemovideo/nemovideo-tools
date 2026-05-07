@@ -285,7 +285,7 @@ nemovideo-tools/
 ```json
 {
   "api_key": "nmv_usr_xxxxxxxxxxxxx",
-  "base_url": "https://mega-x-api.nemovideo.ai",
+  "base_url": "https://mega-x-api-prod.nemovideo.ai",
   "output_dir": "./output"
 }
 ```
@@ -566,7 +566,7 @@ Gateway 侧 Mixpanel 自动记录，CLI 无需额外上报。
 
 | 环境 | Gateway URL |
 |------|-------------|
-| 生产 | `https://mega-x-api.nemovideo.ai`（默认） |
+| 生产 | `https://mega-x-api-prod.nemovideo.ai`（默认） |
 | 测试 | `https://mega-x-api-dev.nemovideo.ai` |
 
 通过 `nemovideo config set base_url <url>` 切换。

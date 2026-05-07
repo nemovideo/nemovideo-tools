@@ -1,7 +1,7 @@
 import Conf from 'conf';
 import type { CLIConfig } from './core/types.js';
 
-const DEFAULT_BASE_URL = 'https://mega-x-api.nemovideo.ai';
+const DEFAULT_BASE_URL = 'https://mega-x-api-prod.nemovideo.ai';
 const DEFAULT_OUTPUT_DIR = './output';
 
 const config = new Conf<CLIConfig>({

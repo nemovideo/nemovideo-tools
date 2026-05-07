@@ -133,7 +133,7 @@ nemovideo create --prompt "5-second sunset timelapse" --export
 
 ```bash
 nemovideo config set api_key <nmv_usr_xxx>
-nemovideo config set base_url https://mega-x-api.nemovideo.ai
+nemovideo config set base_url https://mega-x-api-prod.nemovideo.ai
 nemovideo config set output_dir ./output
 nemovideo config get
 ```
