@@ -8,31 +8,50 @@
   },
   "main": "./dist/index.js",
   "files": [
-    "dist"
+    "dist",
+    "SKILL.md",
+    "README.md",
+    "LICENSE"
   ],
   "scripts": {
     "build": "tsup",
     "dev": "tsup --watch",
     "start": "node dist/index.js",
-    "typecheck": "tsc --noEmit"
+    "typecheck": "tsc --noEmit",
+    "prepublishOnly": "npm run build"
   },
   "keywords": [
     "nemovideo",
     "video",
     "ai",
-    "cli"
+    "cli",
+    "agent",
+    "claude-code",
+    "codex",
+    "cursor",
+    "text-to-video",
+    "video-editing"
   ],
+  "author": "NemoVideo <hello@nemovideo.com> (https://nemovideo.com)",
+  "homepage": "https://github.com/nemovideo/nemovideo-tools#readme",
+  "repository": {
+    "type": "git",
+    "url": "git+https://github.com/nemovideo/nemovideo-tools.git"
+  },
+  "bugs": {
+    "url": "https://github.com/nemovideo/nemovideo-tools/issues"
+  },
   "license": "MIT",
   "engines": {
     "node": ">=18"
   },
   "dependencies": {
-    "chalk": "latest",
-    "commander": "latest",
-    "conf": "latest",
-    "ora": "latest",
-    "update-notifier": "latest",
-    "ws": "latest"
+    "chalk": "^5.6.2",
+    "commander": "^14.0.3",
+    "conf": "^15.1.0",
+    "ora": "^9.4.0",
+    "update-notifier": "^7.3.1",
+    "ws": "^8.20.0"
   },
   "devDependencies": {
     "@types/node": "latest",
