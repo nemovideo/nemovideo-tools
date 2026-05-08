@@ -1,6 +1,6 @@
 {
   "name": "nemovideo-tools",
-  "version": "0.1.0",
+  "version": "0.1.1",
   "description": "NemoVideo Tools - AI video creation and editing for coding agents and CLI",
   "type": "module",
   "bin": {
@@ -11,7 +11,9 @@
     "dist",
     "SKILL.md",
     "README.md",
-    "LICENSE"
+    "LICENSE",
+    ".claude-plugin",
+    "skills"
   ],
   "scripts": {
     "build": "tsup",

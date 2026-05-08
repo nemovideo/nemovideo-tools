@@ -1,0 +1,13 @@
+{
+  "name": "nemovideo-tools",
+  "version": "0.1.1",
+  "description": "AI video creation and editing — generate videos from text descriptions, edit with background music, sound effects, titles, transitions, and export finished MP4 videos directly in chat.",
+  "author": {
+    "name": "NemoVideo",
+    "url": "https://nemovideo.com"
+  },
+  "homepage": "https://nemovideo.com",
+  "repository": "https://github.com/nemovideo/nemovideo-tools",
+  "license": "MIT",
+  "keywords": ["video", "ai", "text-to-video", "video-editing", "cli"]
+}
