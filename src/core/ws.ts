@@ -1,6 +1,11 @@
 import WebSocket from 'ws';
+import type { IncomingMessage } from 'node:http';
 import { EventEmitter } from 'node:events';
 import type { WSClientMessage, WSServerMessage } from './types.js';
+
+const HANDSHAKE_RETRY_STATUSES = new Set([403, 404, 502, 503, 504]);
+const HANDSHAKE_MAX_RETRIES = 3;
+const HANDSHAKE_RETRY_DELAYS_MS = [2000, 3000, 5000];
 
 export interface WSConnectionOptions {
   url: string;
@@ -22,6 +27,10 @@ export class WSClient extends EventEmitter {
   }
 
   connect(): Promise<void> {
+    return this.connectWithRetry(0);
+  }
+
+  private connectWithRetry(attempt: number): Promise<void> {
     return new Promise((resolve, reject) => {
       this.closed = false;
       this.ws = new WebSocket(this.url);
@@ -65,6 +74,34 @@ export class WSClient extends EventEmitter {
         }
       });
 
+      // Handle non-101 handshake responses (403, 404, 502, etc.)
+      // Listening for 'unexpected-response' suppresses the default 'error' emit
+      this.ws.on('unexpected-response', (_req: unknown, res: IncomingMessage) => {
+        const status = res.statusCode ?? 0;
+        if (
+          HANDSHAKE_RETRY_STATUSES.has(status) &&
+          attempt < HANDSHAKE_MAX_RETRIES &&
+          !this.closed
+        ) {
+          const delay = HANDSHAKE_RETRY_DELAYS_MS[attempt] ?? 5000;
+          this.emit('handshake_retry', { status, attempt: attempt + 1, delay });
+          setTimeout(() => {
+            if (this.closed) {
+              reject(new Error('Connection cancelled'));
+              return;
+            }
+            this.connectWithRetry(attempt + 1).then(resolve, reject);
+          }, delay);
+          return;
+        }
+        reject(new Error(
+          `WebSocket handshake failed: server returned ${status}` +
+            (status === 403
+              ? ' (session may not be ready yet — retries exhausted)'
+              : ''),
+        ));
+      });
+
       this.ws.on('error', (err) => {
         if (this.ws?.readyState === WebSocket.CONNECTING) {
           reject(err);
@@ -77,7 +114,7 @@ export class WSClient extends EventEmitter {
 
   private async reconnect(): Promise<void> {
     await new Promise((r) => setTimeout(r, 1000));
-    return this.connect();
+    return this.connectWithRetry(0);
   }
 
   private startPing(): void {
