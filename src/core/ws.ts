@@ -4,8 +4,11 @@ import { EventEmitter } from 'node:events';
 import type { WSClientMessage, WSServerMessage } from './types.js';
 
 const HANDSHAKE_RETRY_STATUSES = new Set([403, 404, 502, 503, 504]);
-const HANDSHAKE_MAX_RETRIES = 3;
-const HANDSHAKE_RETRY_DELAYS_MS = [2000, 3000, 5000];
+const HANDSHAKE_MAX_RETRIES = 10;
+const HANDSHAKE_RETRY_DELAYS_MS = [
+  2000, 3000, 3000, 3000, 3000,
+  5000, 5000, 5000, 5000, 5000,
+];
 
 export interface WSConnectionOptions {
   url: string;
