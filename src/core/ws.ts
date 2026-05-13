@@ -3,12 +3,48 @@ import type { IncomingMessage } from 'node:http';
 import { EventEmitter } from 'node:events';
 import type { WSClientMessage, WSServerMessage } from './types.js';
 
-const HANDSHAKE_RETRY_STATUSES = new Set([403, 404, 502, 503, 504]);
+const HANDSHAKE_RETRIABLE_STATUSES = new Set([502, 503, 504]);
 const HANDSHAKE_MAX_RETRIES = 10;
 const HANDSHAKE_RETRY_DELAYS_MS = [
   2000, 3000, 3000, 3000, 3000,
   5000, 5000, 5000, 5000, 5000,
 ];
+
+function readResponseBody(res: IncomingMessage): Promise<string> {
+  return new Promise((resolve) => {
+    const chunks: Buffer[] = [];
+    res.on('data', (chunk: Buffer) => chunks.push(chunk));
+    res.on('end', () => resolve(Buffer.concat(chunks).toString('utf-8')));
+    res.on('error', () => resolve(''));
+    setTimeout(() => resolve(Buffer.concat(chunks).toString('utf-8')), 2000);
+  });
+}
+
+const AUTH_FAIL_PATTERNS = [
+  'invalid authentication token',
+  'invalid token',
+  'invalid or expired',
+  'missing authentication token',
+  'token not found',
+  'token has been revoked',
+  'token has expired',
+];
+
+function parseRejectReason(body: string): string {
+  if (!body) return '';
+  try {
+    const obj = JSON.parse(body) as Record<string, unknown>;
+    return String(obj.reason ?? obj.message ?? obj.detail ?? '');
+  } catch {
+    return body.slice(0, 200).trim();
+  }
+}
+
+function isTransient403(reason: string): boolean {
+  if (!reason) return true;
+  const lower = reason.toLowerCase();
+  return !AUTH_FAIL_PATTERNS.some((p) => lower.includes(p));
+}
 
 export interface WSConnectionOptions {
   url: string;
@@ -81,28 +117,32 @@ export class WSClient extends EventEmitter {
       // Listening for 'unexpected-response' suppresses the default 'error' emit
       this.ws.on('unexpected-response', (_req: unknown, res: IncomingMessage) => {
         const status = res.statusCode ?? 0;
-        if (
-          HANDSHAKE_RETRY_STATUSES.has(status) &&
-          attempt < HANDSHAKE_MAX_RETRIES &&
-          !this.closed
-        ) {
-          const delay = HANDSHAKE_RETRY_DELAYS_MS[attempt] ?? 5000;
-          this.emit('handshake_retry', { status, attempt: attempt + 1, delay });
-          setTimeout(() => {
-            if (this.closed) {
-              reject(new Error('Connection cancelled'));
-              return;
-            }
-            this.connectWithRetry(attempt + 1).then(resolve, reject);
-          }, delay);
-          return;
-        }
-        reject(new Error(
-          `WebSocket handshake failed: server returned ${status}` +
-            (status === 403
-              ? ' (session may not be ready yet — retries exhausted)'
-              : ''),
-        ));
+
+        readResponseBody(res).then((body) => {
+          const reason = parseRejectReason(body);
+          const canRetry =
+            HANDSHAKE_RETRIABLE_STATUSES.has(status) ||
+            (status === 403 && isTransient403(reason));
+
+          if (canRetry && attempt < HANDSHAKE_MAX_RETRIES && !this.closed) {
+            const delay = HANDSHAKE_RETRY_DELAYS_MS[attempt] ?? 5000;
+            this.emit('handshake_retry', { status, attempt: attempt + 1, delay, reason });
+            setTimeout(() => {
+              if (this.closed) {
+                reject(new Error('Connection cancelled'));
+                return;
+              }
+              this.connectWithRetry(attempt + 1).then(resolve, reject);
+            }, delay);
+            return;
+          }
+
+          const detail = reason ? ` — ${reason}` : '';
+          reject(new Error(
+            `WebSocket handshake failed: server returned ${status}${detail}` +
+              (canRetry ? ' (retries exhausted)' : ''),
+          ));
+        });
       });
 
       this.ws.on('error', (err) => {

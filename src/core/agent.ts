@@ -217,9 +217,10 @@ export async function runAgentSession(
       }
     });
 
-    wsClient.on('handshake_retry', (info: { status: number; attempt: number; delay: number }) => {
+    wsClient.on('handshake_retry', (info: { status: number; attempt: number; delay: number; reason?: string }) => {
       if (currentSpinner) {
-        currentSpinner.text = `Session not ready (${info.status}), retrying in ${info.delay / 1000}s (attempt ${info.attempt})...`;
+        const hint = info.reason || `HTTP ${info.status}`;
+        currentSpinner.text = `Waiting for session (${hint}), retry ${info.attempt} in ${info.delay / 1000}s...`;
       }
     });
 
