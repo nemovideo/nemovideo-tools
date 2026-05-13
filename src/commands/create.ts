@@ -32,7 +32,13 @@ export function registerCreateCommand(program: Command): void {
           throw err;
         }
 
-        const { project_id, session_id } = projectData;
+        const project_id = projectData.project_id;
+        const session_id = projectData.session?.session_id;
+        if (!session_id) {
+          ui.error('Server did not return a session. Please try again.');
+          process.exitCode = 1;
+          return;
+        }
 
         // Step 2: Run agent with prompt
         const fullPrompt = buildPrompt(opts);
@@ -47,17 +53,40 @@ export function registerCreateCommand(program: Command): void {
           return;
         }
 
+        if (!result.hasContent) {
+          ui.warn(
+            'Agent session ended without producing any content. ' +
+            'The sandbox may still be starting up.',
+          );
+          ui.info(`Project ID: ${project_id}`);
+          ui.info('Try again in a moment, or open the project in the web editor.');
+          process.exitCode = 1;
+          return;
+        }
+
         ui.success(`Done! Project: ${project_id}`);
 
         // Step 3: Export if requested
         if (opts.export) {
           console.log();
           try {
-            const filePath = await renderAndDownload(project_id, opts.output);
+            const filePath = await renderAndDownload(project_id, opts.output, session_id);
             ui.success(`Exported: ${filePath}`);
           } catch (err) {
-            ui.error(`Export failed: ${(err as Error).message}`);
-            ui.info(`You can export later: nemovideo export ${project_id}`);
+            const msg = (err as Error).message;
+            if (msg.includes('no draft to render')) {
+              ui.warn(
+                'Agent responded but did not create a video timeline. ' +
+                'This can happen when the agent answers with text only.',
+              );
+              if (result.texts.length > 0) {
+                ui.info(`Agent said: ${result.texts[result.texts.length - 1].slice(0, 200)}`);
+              }
+              ui.info(`You can open the project in the web editor to continue.`);
+            } else {
+              ui.error(`Export failed: ${msg}`);
+            }
+            ui.info(`Project ID: ${project_id}`);
           }
         } else {
           ui.printNextSteps(project_id);

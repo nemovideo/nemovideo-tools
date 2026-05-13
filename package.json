@@ -1,6 +1,6 @@
 {
   "name": "nemovideo-tools",
-  "version": "0.1.4",
+  "version": "0.1.5",
   "description": "NemoVideo Tools - AI video creation and editing for coding agents and CLI",
   "type": "module",
   "bin": {

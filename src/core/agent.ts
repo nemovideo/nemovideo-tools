@@ -1,11 +1,11 @@
 import { getApiKey, getBaseUrl } from '../config.js';
 import { WSClient, buildWSUrl } from './ws.js';
-import type { WSServerMessage } from './types.js';
+import type { AskQuestion, WSServerMessage } from './types.js';
+import { handleAskQuestions } from './prompt.js';
 import * as ui from '../ui.js';
 import type { Ora } from 'ora';
 
-const AGENT_TIMEOUT_MS = 10 * 60 * 1000; // 10 minutes
-
+const AGENT_TIMEOUT_MS = 10 * 60 * 1000;
 const LONG_RUNNING_TOOLS = ['generate_video', 'seedance', 'generate_music', 'suno'];
 
 function isLongRunningTool(name: string): boolean {
@@ -28,6 +28,8 @@ export interface AgentResult {
   completed: boolean;
   texts: string[];
   error?: string;
+  hasContent: boolean;
+  toolsUsed: string[];
 }
 
 export async function runAgentSession(
@@ -45,16 +47,19 @@ export async function runAgentSession(
 
   let currentSpinner: Ora | null = null;
   const collectedTexts: string[] = [];
+  const toolsUsed: string[] = [];
   let chunkBuffer = '';
   let completed = false;
   let messageSent = false;
   let toolDepth = 0;
+  let hasContent = false;
+  let pendingQuestion = false;
 
   return new Promise<AgentResult>((resolve, reject) => {
     const timeout = setTimeout(() => {
       wsClient.close();
       currentSpinner?.fail('Timeout: agent did not respond within 10 minutes');
-      resolve({ completed: false, texts: collectedTexts, error: 'timeout' });
+      resolve({ completed: false, texts: collectedTexts, error: 'timeout', hasContent, toolsUsed });
     }, AGENT_TIMEOUT_MS);
 
     function cleanup() {
@@ -102,6 +107,7 @@ export async function runAgentSession(
     wsClient.on('chunk', (msg: WSServerMessage) => {
       const text = msg.text || (msg as Record<string, unknown>).content as string | undefined;
       if (text) {
+        hasContent = true;
         chunkBuffer += text;
         if (currentSpinner && toolDepth === 0) {
           const preview = chunkBuffer.slice(-60).replace(/\n/g, ' ');
@@ -113,6 +119,7 @@ export async function runAgentSession(
     wsClient.on('text', (msg: WSServerMessage) => {
       const text = msg.text || (msg as Record<string, unknown>).content as string | undefined;
       if (text) {
+        hasContent = true;
         flushChunkBuffer();
         if (currentSpinner) {
           currentSpinner.stop();
@@ -140,11 +147,15 @@ export async function runAgentSession(
 
     function handleToolStart(msg: WSServerMessage) {
       toolDepth++;
+      hasContent = true;
       flushChunkBuffer();
       const raw = msg as Record<string, unknown>;
       const toolName = (raw.tool ?? raw.tool_name ?? raw.name) as string | undefined;
       currentToolName = toolName ?? '';
       toolStartTime = Date.now();
+      if (toolName && !toolsUsed.includes(toolName)) {
+        toolsUsed.push(toolName);
+      }
 
       if (toolTimerInterval) clearInterval(toolTimerInterval);
 
@@ -185,7 +196,35 @@ export async function runAgentSession(
     wsClient.on('tool_end', handleToolEnd);
     wsClient.on('toolcall_end', handleToolEnd);
 
+    wsClient.on('ask_question', async (msg: WSServerMessage) => {
+      hasContent = true;
+      pendingQuestion = true;
+      const questions = msg.questions as AskQuestion[] | undefined;
+      if (!questions?.length) {
+        pendingQuestion = false;
+        return;
+      }
+
+      if (currentSpinner) {
+        currentSpinner.stop();
+        currentSpinner = null;
+      }
+
+      try {
+        const answerText = await handleAskQuestions(msg.title, questions);
+        pendingQuestion = false;
+        wsClient.send({ type: 'message', content: answerText, metadata: {} });
+        currentSpinner = ui.spinner('AI is working...');
+      } catch {
+        pendingQuestion = false;
+        wsClient.send({ type: 'message', content: 'Skipped', metadata: {} });
+        currentSpinner = ui.spinner('AI is working...');
+      }
+    });
+
     wsClient.on('done', () => {
+      if (pendingQuestion) return;
+
       clearTimeout(timeout);
       if (chunkBuffer.trim()) {
         if (currentSpinner) {
@@ -203,7 +242,7 @@ export async function runAgentSession(
       }
       completed = true;
       wsClient.close();
-      resolve({ completed: true, texts: collectedTexts });
+      resolve({ completed: true, texts: collectedTexts, hasContent, toolsUsed });
     });
 
     wsClient.on('error', (err: Error | WSServerMessage) => {
@@ -213,7 +252,7 @@ export async function runAgentSession(
         reject(err);
       } else {
         const agentError = err.error ?? 'Unknown agent error';
-        resolve({ completed: false, texts: collectedTexts, error: agentError });
+        resolve({ completed: false, texts: collectedTexts, error: agentError, hasContent, toolsUsed });
       }
     });
 
@@ -234,6 +273,8 @@ export async function runAgentSession(
         completed: false,
         texts: collectedTexts,
         error: 'Connection lost. Check project status with: nemovideo project get <id>',
+        hasContent,
+        toolsUsed,
       });
     });
 

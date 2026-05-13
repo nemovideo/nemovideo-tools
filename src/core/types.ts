@@ -32,9 +32,16 @@ export interface CreateProjectRequest {
   name?: string;
 }
 
+export interface CreateProjectSession {
+  session_id: string;
+  project_id: string;
+  status?: string;
+}
+
 export interface CreateProjectResponse {
   project_id: string;
-  session_id: string;
+  user_id: string;
+  session?: CreateProjectSession | null;
 }
 
 export interface Session {
@@ -140,9 +147,24 @@ export type WSServerMessageType =
   | 'thinking_end'
   | 'tool_start'
   | 'tool_end'
+  | 'toolcall_start'
+  | 'toolcall_end'
+  | 'ask_question'
   | 'done'
   | 'pong'
   | 'error';
+
+export interface AskQuestionOption {
+  id: string;
+  label: string;
+}
+
+export interface AskQuestion {
+  id: string;
+  prompt: string;
+  options: AskQuestionOption[];
+  allow_multiple?: boolean;
+}
 
 export interface WSServerMessage {
   type: WSServerMessageType;
@@ -152,6 +174,8 @@ export interface WSServerMessage {
   status?: string;
   sandbox_id?: string;
   client_message_id?: string;
+  title?: string;
+  questions?: AskQuestion[];
   [key: string]: unknown;
 }
 
