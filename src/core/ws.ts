@@ -2,6 +2,7 @@ import WebSocket from 'ws';
 import type { IncomingMessage } from 'node:http';
 import { EventEmitter } from 'node:events';
 import type { WSClientMessage, WSServerMessage } from './types.js';
+import { getPackageVersion } from './client.js';
 
 const HANDSHAKE_RETRIABLE_STATUSES = new Set([502, 503, 504]);
 const HANDSHAKE_MAX_RETRIES = 10;
@@ -72,7 +73,9 @@ export class WSClient extends EventEmitter {
   private connectWithRetry(attempt: number): Promise<void> {
     return new Promise((resolve, reject) => {
       this.closed = false;
-      this.ws = new WebSocket(this.url);
+      this.ws = new WebSocket(this.url, {
+        headers: { 'User-Agent': `nemovideo-tools/${getPackageVersion()}` },
+      });
 
       this.ws.on('open', () => {
         this.startPing();

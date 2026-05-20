@@ -21,10 +21,12 @@ function detectPlatform(): string {
 
 function buildHeaders(extraHeaders?: Record<string, string>): Record<string, string> {
   const apiKey = getApiKey();
+  const version = getPackageVersion();
   const headers: Record<string, string> = {
     'Content-Type': 'application/json',
+    'User-Agent': `nemovideo-tools/${version}`,
     'X-Skill-Source': 'nemovideo-tools',
-    'X-Skill-Version': getPackageVersion(),
+    'X-Skill-Version': version,
     'X-Skill-Platform': detectPlatform(),
     ...extraHeaders,
   };
