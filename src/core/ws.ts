@@ -74,7 +74,11 @@ export class WSClient extends EventEmitter {
     return new Promise((resolve, reject) => {
       this.closed = false;
       this.ws = new WebSocket(this.url, {
-        headers: { 'User-Agent': `nemovideo-tools/${getPackageVersion()}` },
+        headers: {
+          'User-Agent': `nemovideo-tools/${getPackageVersion()}`,
+          'X-Skill-Source': 'nemovideo-tools',
+          'X-Skill-Version': getPackageVersion(),
+        },
       });
 
       this.ws.on('open', () => {
