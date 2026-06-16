@@ -61,6 +61,7 @@ This guides you through:
 | `nemovideo project get <id>` | Project details |
 | `nemovideo project download <id>` | Download video |
 | `nemovideo credits` | Check balance |
+| `nemovideo credits history` | Credit usage (`GET /billing/usage/conversations`) |
 | `nemovideo setup` | Configure API key |
 | `nemovideo config set/get` | Manage settings |
 
@@ -75,6 +76,12 @@ nemovideo create -p "coffee product showcase"
 nemovideo chat proj_abc -p "add lo-fi background music"
 nemovideo chat proj_abc -p "add title 'Morning Brew' at the beginning"
 nemovideo export proj_abc -o ./coffee-video.mp4
+
+# Check credits and usage history
+nemovideo credits
+nemovideo credits history
+nemovideo credits history --all-pages --json
+nemovideo credits history --project-id proj_abc123
 
 # Upload your own footage
 nemovideo upload ./raw-footage.mp4 --project proj_abc

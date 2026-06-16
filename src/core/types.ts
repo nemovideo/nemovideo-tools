@@ -98,17 +98,59 @@ export interface BalanceResponse {
   total_consumed: number;
 }
 
-export interface UsageRecord {
-  id: string;
-  type: string;
+/** GET /billing/usage/conversations — tool breakdown within a conversation row */
+export interface ConversationToolBreakdownItem {
+  tool_key: string;
   credits: number;
-  description?: string;
-  created_at: string;
+  count: number;
+  discount_ratio?: number | null;
+  discount_count?: number;
 }
 
-export interface UsageHistoryResponse {
-  records: UsageRecord[];
+export type UsageEntryKind = 'conversation' | 'grant' | 'expire';
+
+export interface ConversationEntryPayload {
+  conversation_id: string;
+  session_id: string | null;
+  project_id: string | null;
+  project_name: string | null;
+  project_deleted: boolean;
+  user_message: string | null;
+  user_message_hidden: boolean;
+  tool_breakdown: ConversationToolBreakdownItem[];
+}
+
+export interface GrantEntryPayload {
+  source: string;
+  reference: string;
+}
+
+export type ExpireEntryPayload = Record<string, never>;
+
+export interface UsageEntryItem {
+  kind: UsageEntryKind;
+  created_at: string;
+  amount_delta: number;
+  conversation?: ConversationEntryPayload | null;
+  grant?: GrantEntryPayload | null;
+  expire?: ExpireEntryPayload | null;
+}
+
+export interface ConversationUsageResponse {
+  items: UsageEntryItem[];
   total: number;
+  page_no: number;
+  page_size: number;
+  total_pages: number;
+  has_next: boolean;
+  has_prev: boolean;
+}
+
+export interface ConversationUsageQuery {
+  page_no?: number;
+  page_size?: number;
+  start_date?: string;
+  end_date?: string;
 }
 
 // ── Files ──
