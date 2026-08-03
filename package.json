@@ -19,6 +19,7 @@
     "build": "tsup",
     "dev": "tsup --watch",
     "start": "node dist/index.js",
+    "test": "tsup tests/render.test.ts --format esm --platform node --target node18 --out-dir .test-dist --clean --no-config && node .test-dist/render.test.js",
     "typecheck": "tsc --noEmit",
     "prepublishOnly": "npm run build"
   },

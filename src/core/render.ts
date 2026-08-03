@@ -10,6 +10,22 @@ const MAX_POLL_MS = 15_000; // cap at 15s
 const POLL_BACKOFF = 1.5; // multiply by 1.5 each time
 const RENDER_TIMEOUT_MS = 5 * 60 * 1000; // 5 minutes
 
+interface PollRenderStatusOptions {
+  getStatus?: (renderId: string) => Promise<Record<string, unknown>>;
+  sleep?: (milliseconds: number) => Promise<void>;
+}
+
+export function isRetryableRenderPollError(error: unknown): boolean {
+  if (error instanceof client.GatewayError) {
+    const status = error.statusCode;
+    return status === 408 || status === 429 || (status !== undefined && status >= 500);
+  }
+
+  // Node's fetch rejects with TypeError for transport failures such as
+  // ECONNRESET, socket closure, and the generic "fetch failed" error.
+  return error instanceof TypeError;
+}
+
 export async function getProjectDraft(projectId: string): Promise<Record<string, unknown>> {
   const state = await client.get<FrontendState>(`/api/v1/state/frontend/${projectId}`);
   const draft = state.project?.['timeline_draft'] as Record<string, unknown> | undefined;
@@ -72,15 +88,33 @@ export async function submitRender(
 export async function pollRenderStatus(
   renderId: string,
   onProgress?: (text: string) => void,
+  options: PollRenderStatusOptions = {},
 ): Promise<RenderStatusResponse> {
   const startTime = Date.now();
   let pollInterval = INITIAL_POLL_MS;
   let attempt = 0;
+  const getStatus = options.getStatus ?? ((id: string) => client.get<Record<string, unknown>>(
+    `/services/v1/render-proxy/lambda/${id}`,
+  ));
+  const sleep = options.sleep ?? ((milliseconds: number) => new Promise<void>((resolve) => {
+    setTimeout(resolve, milliseconds);
+  }));
 
   while (Date.now() - startTime < RENDER_TIMEOUT_MS) {
-    const resp = await client.get<Record<string, unknown>>(
-      `/services/v1/render-proxy/lambda/${renderId}`,
-    );
+    let resp: Record<string, unknown>;
+    try {
+      resp = await getStatus(renderId);
+    } catch (error) {
+      if (!isRetryableRenderPollError(error)) {
+        throw error;
+      }
+
+      const elapsed = Math.round((Date.now() - startTime) / 1000);
+      onProgress?.(`Render status unavailable; retrying same task... (${elapsed}s)`);
+      await sleep(pollInterval);
+      pollInterval = Math.min(pollInterval * POLL_BACKOFF, MAX_POLL_MS);
+      continue;
+    }
 
     const status = resp.status as string ?? '';
     const outputUrl = resp.outputUrl as string | undefined;
@@ -98,7 +132,7 @@ export async function pollRenderStatus(
     const progressStr = typeof progress === 'number' ? ` ${Math.round(progress)}%` : '';
     onProgress?.(`Rendering...${progressStr} (${elapsed}s)`);
 
-    await new Promise((r) => setTimeout(r, pollInterval));
+    await sleep(pollInterval);
     pollInterval = Math.min(pollInterval * POLL_BACKOFF, MAX_POLL_MS);
   }
 
